@@ -11,7 +11,7 @@ scopes = [
 ]
 
 credentials = Credentials.from_service_account_file(
-    '../campaign-318908-b7f2f5f17cab.json',
+    'Spreed_Sheet_Data.json',
     scopes=scopes
 )
 
@@ -28,7 +28,7 @@ for list in list_of_fb_profile:
         facebook_user_country = profile_info[1]
 
         # Insert Data to Database
-        connection = sqlite3.connect('../miracle.db')
+        connection = sqlite3.connect('../DatabaseCreation/wws.db')
         cursor = connection.cursor()
 
         cursor.execute(

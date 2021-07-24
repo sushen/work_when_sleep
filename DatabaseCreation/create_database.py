@@ -1,6 +1,6 @@
 import sqlite3
 
-connection = sqlite3.connect('../miracle.db')
+connection = sqlite3.connect('../DatabaseCreation/wws.db')
 
 cursor = connection.cursor()
 

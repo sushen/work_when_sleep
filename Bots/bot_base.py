@@ -3,7 +3,7 @@ import pathlib
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-
+from Config.bot_config import BotData
 
 global chrome_options
 chrome_options = Options()
@@ -22,7 +22,5 @@ chrome_options.add_argument("--start-maximized")
 
 class BaseBot:
     def __init__(self):
-        self.driver = webdriver.Chrome("../chromedriver.exe", chrome_options=chrome_options)
+        self.driver = webdriver.Chrome(executable_path=BotData.CHROME_EXECUTABLE_PATH, chrome_options=chrome_options)
 
-# link = BaseBot()
-# link.driver.get(BotData.BASE_URL)
