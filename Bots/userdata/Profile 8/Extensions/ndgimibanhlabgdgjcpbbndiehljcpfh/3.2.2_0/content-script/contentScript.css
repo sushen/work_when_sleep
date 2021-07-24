@@ -1,0 +1,21 @@
+/**
+ * Created by sanjay kumar on 25/06/2020.
+ */
+
+
+[xpath], [css]{
+    outline: 2px dashed #00bcd4 !important;
+}
+[xpath="1"],  [css="1"]{
+    outline: 2px dashed #f29a00 !important;
+}
+
+svg[xpath],  svg[css]{
+	outline: none !important;
+    border: 2px dashed #00bcd4 !important;
+}
+
+svg[xpath="1"],  svg[css="1"]{
+	outline: none !important;
+    border: 2px dashed #f29a00 !important;
+}

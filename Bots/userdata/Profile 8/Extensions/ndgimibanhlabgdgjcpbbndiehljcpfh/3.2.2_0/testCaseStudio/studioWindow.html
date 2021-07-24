@@ -1,0 +1,176 @@
+<!-- Created by sanjay kumar on 25/06/2020. -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>TestCase Studio</title>
+    <link rel="stylesheet" type="text/css" href="studio.css" type="text/css" media="screen" />
+    <meta name="theme-color" content="#5fba7d">
+</head>
+
+<body>
+    <div id='showList'>
+        <div style="
+                display: flex;
+                flex-direction: row;
+                overflow-x: hidden;
+            ">
+
+            <div id='testCaseCollapseSection' class="leftToggleContainer">
+                <div class="toggleTestCaseDiv">
+                    <div class="caseSearchBox">
+                        <i style="font-size: 1.4em; color: #92a4b7; font-weight: 600;" class="fas fa-search"></i>
+                        <input class="caseSearchInput" style="width: 70px; border: none; padding-left: 8px;" type="text"
+                            placeholder="Search">
+                    </div>
+                </div>
+                <div id="testCase-grid" class="testCasesList">
+                </div>
+            </div>
+
+            <div id="collapseWindow">
+                <div class="lowerContainerDiv">
+                    <div id="testCase-container" class="leftContainerDiv">
+                        <button style="position: relative; left: -35px;" class="headerGearIcon">
+                            <i class="fas fa-plus" aria-hidden="true"
+                                style=" color: #291818; font-size: 1.2em; padding-left: 8px; "></i>
+                            <span class="monserrat"
+                                style="text-transform: capitalize;color: #4D4D4D;line-height: 27px;">New Case</span>
+                        </button>
+                        <div class="searchBoxContainer">
+                            <input id="filterTestCases" type="text" placeholder="Search">
+                        </div>
+                    </div>
+                    <div id="command-container" class="rightContainerDiv">
+                        <div id="downloadFileName">
+                            <p data-placeholder="Update test case name" title="Edit test case name" contenteditable="true">Edit TestCase Name</p>
+                            
+                            <a target="_blank" href="http://selectorshub.com/testcase-studio/">
+                                <button class="tcStudio_logo">
+                                    <span class="tcStudioLogo toolTip">Click to know more about TestCase Studio.</span>
+                                </button>
+                            </a>
+                        </div>
+                        <div class="rightContainerUpper" id='right_Upper_sub_Container'>
+                            <div id="iconsContainer" class="testCaseActionIcons">
+                                <button id='clearTestCase' class="iconContainer">
+                                    <span class="deleteBtn toolTip">Clear all recorded steps.</span>
+                                </button>
+                                <div id="record" class="iconContainer">
+                                    <button id='recordIcon' class="iconContainer">
+                                        <span class="pauseBtn toolTip">Click to stop recording.</span>
+                                    </button>
+                                </div>
+                                <a target="_blank" class="tutorialLink" href="https://youtu.be/2gH5c97j2GU">
+                                   <button class="studioTutorial">
+                                        <span class="tutorial toolTip">TestCase Studio Tutorial.</span>
+                                   </button>
+                                </a>
+                                <button class="attrFilterBtn inactive">
+                                    <span class="filter toolTip">Set attribute.</span>
+                                </button>
+                                <div id="saveBtnForDebug" class="iconContainer" style="display:none; cursor: pointer;
+                                        cursor: pointer;
+                                        width: 23px;
+                                        height: 23px;
+                                        border-radius: 50px;
+                                        border: 2px solid #3b91df;
+                                        text-align: center;
+                                        margin-left: 5px;
+                                        " title="Save">
+                                    <i class="fa fa-save" style="font-size: 17px;"></i>
+                                </div>
+                            </div>
+                            <div id='debugTestStepName'>
+                                <div style="margin-top: 10px; max-width: 190px;">
+                                    <span style="font-size: 12px; font-family: sans-serif;">Add driver command</span>
+                                    <div id='inputToggle' class="toggle-btn inactive">
+                                        <div class="toggle-circle"></div>
+                                        <span class="toggle toolTip">Click to set driver command.</span>
+                                    </div>
+                                </div>
+                                
+
+                            </div>
+                        </div>
+
+                        <div class="inputFeildContainer">
+                            <input type="text" id='xpathInput' placeholder="keep xpathvalue as keyword in command." autocomplete="off" autocorrect="off" title='You can change this command, just keep xpathvalue as keyword where you want to have xpath value in command. For ex- FindBy(xpath="xpathvalue") or if xpath is not inside double quotes then FindBy(xpath=xpathValue)' spellcheck="false" value='driver.findElement(By.xpath("xpathvalue"))'>
+                            <span id='helperText'></span>
+                        </div>
+
+                        <div class="attributeFilter">
+                            <label><input class="chooseAttr textXpath" type="checkbox" title="xpath with text or without text." checked>text</label>    
+                            <label><input class="chooseAttr id" type="checkbox" name="id" checked />id</label>
+                            <label><input class="chooseAttr class" type="checkbox" name="class" checked />class</label>
+                            <label><input class="chooseAttr name" type="checkbox" name="name" checked />name</label>
+                            <label><input class="chooseAttr placeholder" type="checkbox" name="placeholder" checked />placeholder</label>
+                                
+                        </div>
+                        <div class="rightContainerLower" id='sub_content'>
+                            <table id="command-grid" class="tablesorter" cellspacing="0">
+                                <thead class="fixed">
+                                    <tr>
+                                        <th style="box-shadow: none !important; width: 30px">
+                                            <div class="header">
+                                                # 
+                                            </div>
+                                        </th>
+                                        <th style="box-shadow: none !important; width: 20%">
+                                            <div class="header">
+                                                Steps
+                                                <button class="copyAllButton">
+                                                    <span class="copyAllSteps toolTip">Click to copy all Test Steps.</span>
+                                                </button>
+                                            </div>
+                                        </th>
+                                        <th style="box-shadow: none !important; width: 15%">
+                                            <div class="header">
+                                                Data
+                                                <button class="copyAllData">
+                                                    <span class="copyAllStepsData toolTip">Click to copy all step's Data.</span>
+                                                </button>
+                                            </div>
+                                        </th>
+                                        <th style="box-shadow: none !important; width: 50%; border: none; box-shadow: none !important;">
+                                            <div class="header">
+                                                <span id="toggleHeader">Command</span>
+                                                <button id='updatetitle' class="copyAllXpath">
+                                                    <span class="copyAllCommand toolTip">Click to copy all commands/xpaths.</span>
+                                                </button>
+                                            </div>
+                                        </th>
+                                        <th style="box-shadow: none !important; width: 5%; box-shadow: none !important; border-right: none !important;">
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="records-grid">
+
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="tablePlaceholder" style=""></div>
+                        <div class="rightContainerFooter" id='save_sub_content'>
+                            <!-- <div id="snackbar"></div> -->
+                            <button title="Save" id="save_btn" class="saveTestCaseBtn">
+                                Save Test Case
+                                <div class="loader" id="loader"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Snackbar -->
+                    <div id="snackbar"></div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../extension/captureEvents.js"></script>
+    <script src='../content-script/browser-polyfill.min.js'></script>
+</body>
+
+</html>
