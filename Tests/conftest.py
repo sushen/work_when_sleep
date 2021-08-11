@@ -7,20 +7,20 @@ from Config.config import TestData
 """ Three thing we have to do extra"""
 
 # 1 Work with chrome option
-# import pathlib
-# from selenium.webdriver.chrome.options import Options
-# chrome_options = Options()
-# scriptDirectory = pathlib.Path().absolute()
-# chrome_options.add_argument("--start-maximized")
-# chrome_options.add_argument("--user-data-dir=chrome-data")
-# chrome_options.add_argument('--profile-directory=Profile 8')
-# prefs = {"profile.default_content_setting_values.notifications": 2}
-# chrome_options.add_experimental_option("prefs", prefs)
-# chrome_options.add_argument('disable-infobars')
-# chrome_options.add_experimental_option("useAutomationExtension", False)
-# chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-# chrome_options.add_argument("user-data-dir=chrome-data")
-# chrome_options.add_argument(f"user-data-dir={scriptDirectory}\\userdata")
+import pathlib
+from selenium.webdriver.chrome.options import Options
+chrome_options = Options()
+scriptDirectory = pathlib.Path().absolute()
+chrome_options.add_argument("--start-maximized")
+chrome_options.add_argument("--user-data-dir=chrome-data")
+chrome_options.add_argument('--profile-directory=Profile 8')
+prefs = {"profile.default_content_setting_values.notifications": 2}
+chrome_options.add_experimental_option("prefs", prefs)
+chrome_options.add_argument('disable-infobars')
+chrome_options.add_experimental_option("useAutomationExtension", False)
+chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+chrome_options.add_argument("user-data-dir=chrome-data")
+chrome_options.add_argument(f"user-data-dir={scriptDirectory}\\userdata")
 
 
 # 2 We have to use 1 params
