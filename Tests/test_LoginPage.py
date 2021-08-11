@@ -4,10 +4,10 @@ from Tests.test_base import BaseTest
 
 
 class Test_Login(BaseTest):
-    def test_login_btn_visible(self):
-        self.loginPage = LoginPage(self.driver)
-        flag = self.is_forgotten_password_button_exist()
-        assert flag
+    # def test_login_btn_visible(self):
+    #     self.loginPage = LoginPage(self.driver)
+    #     flag = self.is_forgotten_password_button_exist()
+    #     assert flag
 
     def test_login_page_title(self):
         self.loginPage = LoginPage(self.driver)
