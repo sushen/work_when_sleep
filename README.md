@@ -4,7 +4,7 @@
 
 ## How to wtite test cases and Business logic
 
-[![How to wtite test cases and Business logic](https://user-images.githubusercontent.com/4492335/128799216-39fd56ea-d687-47d5-bc38-73e092aee4d6.jpg)](https://youtu.be/5MrjP0vvpbg)
+[![How to wtite test cases and Business logic](https://user-images.githubusercontent.com/4492335/129431875-5fc00bc2-133a-44ba-bb74-d81f6b9a28b2.jpg)](https://youtu.be/5MrjP0vvpbg)
 
 
 
