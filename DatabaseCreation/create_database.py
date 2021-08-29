@@ -1,6 +1,6 @@
 import sqlite3
 
-connection = sqlite3.connect('../DatabaseCreation/wws.db')
+connection = sqlite3.connect('../miracle.db')
 
 cursor = connection.cursor()
 
@@ -44,14 +44,14 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         FOREIGN KEY(_fk_fb_gp_life_circle) REFERENCES fb_gp_life_circle(_pk_fb_gp_life_circle)
         )""")
 
-# Add profile_gender Table
+# Add profile_life_circle Table
 cursor.execute("""CREATE TABLE IF NOT EXISTS
     profile_life_circle (
         _pk_profile_life_circle INTEGER PRIMARY KEY AUTOINCREMENT,
         profile_life_circle TEXT
         )""")
 
-# Add profile_gender Table
+# Add profile_country Table
 cursor.execute("""CREATE TABLE IF NOT EXISTS
     profile_country (
         _pk_profile_country INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +65,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         profile_gender TEXT
         )""")
 
-# Add profile_gender Table
+# Add profile_name Table
 cursor.execute("""CREATE TABLE IF NOT EXISTS
     profile_name (
         _pk_profile_name INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,6 +77,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
     facebook_profile(
         _pk_facebook_profile INTEGER PRIMARY KEY AUTOINCREMENT,
         profile_link TEXT,
+        profile_id TEXT,
         _fk_profile_name INTEGER,
         _fk_profile_gender INTEGER,
         _fk_profile_country INTEGER,
@@ -102,7 +103,59 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         _pk_message_table INTEGER PRIMARY KEY AUTOINCREMENT,
         message TEXT,
         _fk_fb_profile_id INTEGER,
+        _fk_message_ca_table INTEGER,
         FOREIGN KEY(_fk_fb_profile_id) REFERENCES facebook_profile(_pk_facebook_profile)
+        FOREIGN KEY(_fk_message_ca_table) REFERENCES message_category_table(_pk_message_ca_table)
+        )""")
+
+# Add message_category_table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    message_category (
+        _pk_message_category INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_name TEXT
+        )""")
+
+# Add facebook_group
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    facebook_group (
+        _pk_facebook_group INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_link TEXT,
+        _fk_group_name_id INTEGER,
+        _fk_group_category_id INTEGER,
+        FOREIGN KEY(_fk_group_name_id) REFERENCES facebook_group_name(_pk_fb_group_name)
+        FOREIGN KEY(_fk_group_category_id) REFERENCES facebook_group_category(_pk_fb_gp_category)
+        )""")
+
+# Add facebook_group_name Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    facebook_group_name (
+        _pk_fb_group_name INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_name TEXT
+        )""")
+
+# Add facebook_group_category Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    facebook_group_category (
+        _pk_fb_gp_category INTEGER PRIMARY KEY AUTOINCREMENT,
+        gp_category_name TEXT
+        )""")
+
+# Add facebook_group_test Test_Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    facebook_group_test (
+        _pk_facebook_group INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_link TEXT,
+        _fk_group_name_id INTEGER,
+        _fk_group_category_id INTEGER,
+        FOREIGN KEY(_fk_group_name_id) REFERENCES facebook_group_name(_pk_fb_group_name)
+        FOREIGN KEY(_fk_group_category_id) REFERENCES facebook_group_category(_pk_fb_gp_category)
+        )""")
+
+# Add profile_group_link Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    profile_group_link (
+        _pk_profile_gp_link INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_group_link TEXT
         )""")
 
 connection.commit()
