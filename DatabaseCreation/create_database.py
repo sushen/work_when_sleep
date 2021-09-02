@@ -1,6 +1,6 @@
 import sqlite3
 
-connection = sqlite3.connect('../miracle.db')
+connection = sqlite3.connect('miracle.db')
 
 cursor = connection.cursor()
 
@@ -50,6 +50,13 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         _pk_profile_life_circle INTEGER PRIMARY KEY AUTOINCREMENT,
         profile_life_circle TEXT
         )""")
+# add logs
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    logs (
+        _pk_log INTEGER PRIMARY KEY AUTOINCREMENT,
+        last_update TEXT,
+        local_user TEXT
+        )""")
 
 # Add profile_country Table
 cursor.execute("""CREATE TABLE IF NOT EXISTS
@@ -78,6 +85,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         _pk_facebook_profile INTEGER PRIMARY KEY AUTOINCREMENT,
         profile_link TEXT,
         profile_id TEXT,
+        last_update TIMESTAMP,
         _fk_profile_name INTEGER,
         _fk_profile_gender INTEGER,
         _fk_profile_country INTEGER,
@@ -85,7 +93,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         FOREIGN KEY(_fk_profile_name) REFERENCES profile_name(_pk_profile_name),    
         FOREIGN KEY(_fk_profile_gender) REFERENCES profile_gender(_pk_profile_gender),
         FOREIGN KEY(_fk_profile_country) REFERENCES profile_country(_pk_profile_country),
-        FOREIGN KEY(_fk_profile_life_circle) REFERENCES profile_life_circle(_pk_profile_life_circle)  
+        FOREIGN KEY(_fk_profile_life_circle) REFERENCES profile_life_circle(_pk_profile_life_circle)
         )""")
 
 # Add profile_message Table

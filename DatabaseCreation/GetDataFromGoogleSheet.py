@@ -1,8 +1,9 @@
 # Get Data from Google Sheet
 import sqlite3
-
+import datetime
 import gspread
 from google.oauth2.service_account import Credentials
+
 
 
 '''
@@ -18,7 +19,7 @@ def profile_data_import(google_sheet_file_name, sheet_name, profile_life_circle)
     google_sheet_row_data = fb_username_url_gs.col_values(1)
     existingRow = len(google_sheet_row_data)
 
-    connection = sqlite3.connect('../miracle.db')
+    connection = sqlite3.connect('miracle.db')
     cursor = connection.cursor()
 
     databaseList = []
@@ -47,18 +48,21 @@ def profile_data_import(google_sheet_file_name, sheet_name, profile_life_circle)
     elif len(databaseList) < len(google_sheet_row_data):
         for profile_list in profile_list_index:
             print(profile_list)
-            connection = sqlite3.connect('../miracle.db')
+            connection = sqlite3.connect('miracle.db')
             cursor = connection.cursor()
             cursor.execute(
-                "INSERT INTO facebook_profile VALUES (:_pk_facebook_profile, :profile_link, :profile_id, :_fk_profile_name,  :_fk_profile_gender,:_fk_profile_country, :_fk_profile_life_circle)",
+                "INSERT INTO facebook_profile VALUES (:_pk_facebook_profile, :profile_link, :profile_id,:last_update,:_fk_profile_name,  :_fk_profile_gender,:_fk_profile_country, :_fk_profile_life_circle)",
                 {
                     '_pk_facebook_profile': None,
                     'profile_link': profile_list,
                     'profile_id': None,
+                    'last_update':str(datetime.datetime.now()),
                     '_fk_profile_name': None,
                     '_fk_profile_country': None,
                     '_fk_profile_gender': None,
                     '_fk_profile_life_circle': profile_life_circle
+                   
+                    
                 })
             connection.commit()
             connection.close()
@@ -90,7 +94,7 @@ for group in list_of_fb_groups:
         print(facebook_group_url)
 
         # Insert Data to Database
-        connection = sqlite3.connect('../miracle.db')
+        connection = sqlite3.connect('miracle.db')
         cursor = connection.cursor()
 
         cursor.execute(
@@ -119,7 +123,7 @@ for group in list_of_fb_groups:
         print(facebook_group_url)
 
         # Insert Data to Database
-        connection = sqlite3.connect('../miracle.db')
+        connection = sqlite3.connect('miracle.db')
         cursor = connection.cursor()
 
         cursor.execute(
@@ -149,7 +153,7 @@ for group in list_of_fb_groups:
         print(message)
         # print(input("Press any Key: "))
         # Insert Data to Database
-        connection = sqlite3.connect('../miracle.db')
+        connection = sqlite3.connect('miracle.db')
         cursor = connection.cursor()
 
         cursor.execute(
@@ -179,7 +183,7 @@ for group in list_of_fb_groups:
         print(message_category)
         # print(input("Press any Key: "))
         # Insert Data to Database
-        connection = sqlite3.connect('../miracle.db')
+        connection = sqlite3.connect('miracle.db')
         cursor = connection.cursor()
 
         cursor.execute(
@@ -207,7 +211,7 @@ for group in list_of_fb_groups:
         print(message_category)
         # print(input("Press any Key: "))
         # Insert Data to Database
-        connection = sqlite3.connect('../miracle.db')
+        connection = sqlite3.connect('miracle.db')
         cursor = connection.cursor()
 
         cursor.execute(
@@ -223,7 +227,7 @@ for group in list_of_fb_groups:
 print("Get facebook profile life cercle from Google Sheet successfully")
 
 # Import first_Massage_to_Python_learner
-profile_data_import('Campeign 001', 'FirstMessagePythonLearner', 4 )
+profile_data_import('Campeign 001', 'FirstMessagePythonLearner', 4)
 print("Get facebook_profile from Google Sheet successfully")
 
 # Import before_conversaton_1
