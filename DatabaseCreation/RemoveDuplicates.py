@@ -1,8 +1,9 @@
 import sqlite3
 
-connection = sqlite3.connect('../miracle.db')
+connection = sqlite3.connect('miracle.db')
 cursor = connection.cursor()
-cursor.execute("SELECT* FROM facebook_profile")
+cursor.execute("SELECT * FROM facebook_profile")
+
 
 
 def remove_duplicate(records):
@@ -27,12 +28,16 @@ def remove_duplicate(records):
             break
 
 
-count = 0
-records = cursor.fetchall()
-while count < len(records):
-    count = count + 1
-    remove_duplicate(records)
-    print(count)
+if __name__ == '__main__':
+    count = 0
+    records = cursor.fetchall()
+    while count < len(records):
+        count = count + 1
+        remove_duplicate(records)
+        print(count)
 
-connection.commit()
-connection.close()
+    connection.commit()
+    connection.close()
+
+
+ 
