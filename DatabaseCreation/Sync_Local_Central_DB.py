@@ -16,7 +16,6 @@ scopes = [
 ]
 
 
-
 # gc = gspread.authorize(credentials)
 
 class GoogleSheet:
@@ -153,11 +152,9 @@ class SQLite:
     
     DB_NAME = "miracle.db"
     local_user = os.environ['COMPUTERNAME'];
-   
   
     def __init__(self):
         self.conn = self.create_connection()
-       
   
     @classmethod
     def create_connection(cls):
@@ -176,7 +173,6 @@ class SQLite:
               
         # returns the connection object
         return conn
-    
     
     def get_local_latest_log(self):
         cursor = self.conn.cursor()
@@ -203,7 +199,7 @@ class SQLite:
         return local_log_last
 
     def check_latest_log_update_status(self):
-        data = GoogleSheet.get_from_sheet("Campeign 001","logs")
+        data = GoogleSheet.get_from_sheet("Campeign 001", "logs")
         sheet_last_log_date = data[len(data)-1][0]
         local_last_log_date = self.get_local_latest_log()
 
@@ -221,9 +217,6 @@ class SQLite:
         elif status == "all_updated":
             print("local and central data is updated")
         else: print("local updated")
-    
-
-        
 
 
     @classmethod
@@ -257,7 +250,7 @@ class SQLite:
         new_list = self.get_new_sheet_difference_data(local_data_list,sheet_data_list)
         return new_list
 
-    def get_local_new_updated_data(self,local_data_list, sheet_data_list):
+    def get_local_new_updated_data(self, local_data_list, sheet_data_list):
         new_list = []
         for local in local_data_list:
             already_added = False
@@ -294,15 +287,14 @@ class SQLite:
 
         #     if not already_added:
         #         new_list.append(local) 
-        #     already_added = False 
-
-       
+        #     already_added = False
 
     def add_new_data_into_table_and_sheet(self,rows:list,log_date=None):
         c = self.conn.cursor()  
         if log_date is None:
             log_date = str(datetime.datetime.now())
-        if(len(rows)>1):
+
+        if len(rows) > 1:
             self.add_log_to_local(log_date)
             GoogleSheet.add_log_to_sheet("Campeign 001","logs",log_date)
             for row in rows[1:]:
@@ -318,7 +310,6 @@ class SQLite:
                         '_fk_profile_country': None,
                         '_fk_profile_gender': None,
                         '_fk_profile_life_circle': row[6]
-                    
                         
                     })
         
@@ -330,7 +321,6 @@ class SQLite:
           
         # closing the connection to the database
         c.close()
-        
   
     def update_new_sheet_data_to_local_table(self, rows: list,log_date=None):
         """Inserts the data from sheets to the table"""
@@ -341,8 +331,7 @@ class SQLite:
         if log_date is None:
             log_date = str(datetime.datetime.now())
 
-
-        if(len(rows)>0):
+        if len(rows) > 0:
             self.add_log_to_local(log_date)
             GoogleSheet.add_log_to_sheet("Campeign 001","logs",log_date)
             for row in rows:
@@ -383,12 +372,10 @@ class SQLite:
         return data_list
 
 
-
-
 if __name__ == '__main__':
 
-    # sqlite_util_obj = SQLite()
-    # sqlite_util_obj.sync_data()
+    sqlite_util_obj = SQLite()
+    sqlite_util_obj.sync_data()
 
     # # fetches data from the sheets
     # data = get_from_sheet("Campeign 001","logs")  
@@ -397,11 +384,8 @@ if __name__ == '__main__':
     # sqlite_util.check_latest_log_update(data[len(data)-1][0])
     #     # sqlite_util.update_log_to_local(datetime.datetime.now())
 
-   
-    google_sheet_obj = GoogleSheet()
-    google_sheet_obj.remove_duplicate_first("Campeign 001","facebook_profile")
-
-    
+    # google_sheet_obj = GoogleSheet()
+    # google_sheet_obj.remove_duplicate_first("Campeign 001","facebook_profile")
 
     # GoogleSheet.add_log_to_sheet("Campeign 001","logs")
    
@@ -411,7 +395,6 @@ if __name__ == '__main__':
     # print(status)
 
     # sqlite_util_obj.make_add_update_sheet_local(status,latest_date)
-   
 
     # sqlite_util_obj.get_new_difference_data()
 
@@ -425,8 +408,6 @@ if __name__ == '__main__':
     # fb_profile_list = sqlite_util_obj.get_facebook_profile()
 
     # update_local_facebook_profile_to_sheet("Campeign 001","facebook_profile",fb_profile_list)
-
-
 
     # data1 = "2021-09-04 01:47:00"
     # date2 = "2021-09-04 01:54:57.747115"
