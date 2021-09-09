@@ -14,6 +14,13 @@
 
 [![How to wtite POM testing Facebook using cookies](https://user-images.githubusercontent.com/4492335/130192218-72f1c526-a235-4047-a6c4-5fafa0e05610.jpg)](https://youtu.be/elr2Mdk5avc)
 
+![What we need to learn](https://user-images.githubusercontent.com/4492335/132645902-f3e4561f-3048-47a2-b30e-41c8e3ba7d76.png)
+
+
+## What we need to learn
+[![What we need to learns](https://user-images.githubusercontent.com/4492335/132645902-f3e4561f-3048-47a2-b30e-41c8e3ba7d76.png)](https://youtu.be/_m94I2hHpXI)
+
+
 
 
 
