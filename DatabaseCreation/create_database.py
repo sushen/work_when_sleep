@@ -1,6 +1,6 @@
 import sqlite3
 
-connection = sqlite3.connect('miracle.db')
+connection = sqlite3.connect('../miracle.db')
 
 cursor = connection.cursor()
 
@@ -93,7 +93,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         FOREIGN KEY(_fk_profile_name) REFERENCES profile_name(_pk_profile_name),    
         FOREIGN KEY(_fk_profile_gender) REFERENCES profile_gender(_pk_profile_gender),
         FOREIGN KEY(_fk_profile_country) REFERENCES profile_country(_pk_profile_country),
-        FOREIGN KEY(_fk_profile_life_circle) REFERENCES profile_life_circle(_pk_profile_life_circle)
+        FOREIGN KEY(_fk_profile_life_circle) REFERENCES profile_life_circle(_pk_profile_life_circle)  
         )""")
 
 # Add profile_message Table
@@ -166,7 +166,45 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS
         profile_group_link TEXT
         )""")
 
+
+# Add linkedin_profile Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    linkedin_profile(
+        _pk_linkedin_profile INTEGER PRIMARY KEY AUTOINCREMENT,
+        linkedin_profile_link TEXT,
+        linkedin_profile_id TEXT,
+        _fk_ldin_profile_name INTEGER,
+        _fk_profile_gender INTEGER,
+        _fk_profile_country INTEGER,
+        _fk_profile_life_circle INTEGER,    
+        last_update TIMESTAMP,
+        FOREIGN KEY(_fk_ldin_profile_name) REFERENCES profile_name(_pk_profile_name),    
+        FOREIGN KEY(_fk_profile_gender) REFERENCES profile_gender(_pk_profile_gender),
+        FOREIGN KEY(_fk_profile_country) REFERENCES profile_country(_pk_profile_country),
+        FOREIGN KEY(_fk_profile_life_circle) REFERENCES profile_life_circle(_pk_profile_life_circle)  
+        )""")
+
+# Add linkedin_profile_name Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    linkedin_profile_name (
+        _pk_profile_name INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_name TEXT
+        )""")
+
+# Add linkedin_profile_sales_link Table
+cursor.execute("""CREATE TABLE IF NOT EXISTS
+    linkedin_profile_sales_link (
+        _pk_profile_sni_link INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_sni_link TEXT
+        )""")
+
 connection.commit()
 connection.close()
 
 print("Database created successfully")
+
+
+
+
+
+
