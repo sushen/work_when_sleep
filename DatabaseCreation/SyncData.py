@@ -16,8 +16,6 @@ credentials = Credentials.from_service_account_file(
 )
 
 
-def return_not_matches(a, b):
-    return [[x for x in a if x not in b], [x for x in b if x not in a]]
 
 
 def profile_data_import(google_sheet_file_name, sheet_name, profile_life_circle ):
@@ -30,6 +28,8 @@ def profile_data_import(google_sheet_file_name, sheet_name, profile_life_circle 
 
     connection = sqlite3.connect('../miracle.db')
     cursor = connection.cursor()
+    
+   
 
     databaseList = []
     databaseLists = cursor.execute("SELECT profile_link FROM facebook_profile WHERE _fk_profile_life_circle=5")
@@ -37,6 +37,9 @@ def profile_data_import(google_sheet_file_name, sheet_name, profile_life_circle 
         databaseList.append(data[0])
     connection.commit()
     connection.close()
+
+    def return_not_matches(a, b):
+            return [[x for x in a if x not in b], [x for x in b if x not in a]]
 
     have_to_written_double_list = return_not_matches(google_sheet_row_data, databaseList)
     have_to_written = have_to_written_double_list[0]
