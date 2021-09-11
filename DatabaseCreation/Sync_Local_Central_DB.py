@@ -60,7 +60,7 @@ class GoogleSheet:
     # data = get_from_sheet("Campeign 001","logs")
 
     # print(data)
-    print(os.environ['COMPUTERNAME'])
+    # print(os.environ['COMPUTERNAME'])
 
     @staticmethod
     def date_difference_status(sheet_date,local_server_date):
@@ -85,8 +85,9 @@ class GoogleSheet:
     def get_log_status(self):
         pass
 
-    def update_local_facebook_profile_to_sheet(self,google_sheet_file_name,sheet_name,rows,db_obj):
-
+    @classmethod
+    def update_local_facebook_profile_to_sheet(cls,google_sheet_file_name,sheet_name,rows,latest_log):
+        self = cls()
         data = self.get_from_sheet("Campeign 001",sheet_name)
         existing_row = len(data)
         facebook_profile_gs = self.gc.open(google_sheet_file_name).worksheet(sheet_name)
@@ -94,19 +95,19 @@ class GoogleSheet:
         # data= facebook_profile_gs.get_all_records()
         # data= facebook_profile_gs.get_all_values()
         # facebook_profile_gs.clear()
-        new_log_date =str(datetime.datetime.now())
+        if latest_log is None:
+            latest_log =str(datetime.datetime.now())
        
-        self.add_log_to_sheet("Campeign 001","logs",new_log_date) 
-        SQLite.add_log_to_local(new_log_date)
-        # for row in rows:
-        #     print(row[1])   
-        #     facebook_profile_gs.update_cell(existing_row + index,1,row[0])
-        #     facebook_profile_gs.update_cell(existing_row + index,2,row[1])
-        #     facebook_profile_gs.update_cell(existing_row + index,4,row[3])
-        #     facebook_profile_gs.update_cell(existing_row + index,8,row[7])
-
-        #     index += 1
-        #     time.sleep(3)
+        self.add_log_to_sheet("Campeign 001","logs",latest_log)
+        # SQLite.add_log_to_local(latest_log)
+        for row in rows:
+            print(row[1])
+            facebook_profile_gs.update_cell(existing_row + index,1,row[0])
+            facebook_profile_gs.update_cell(existing_row + index,2,row[1])
+            facebook_profile_gs.update_cell(existing_row + index,4,row[3])
+            facebook_profile_gs.update_cell(existing_row + index,8,row[7])
+            index += 1
+            time.sleep(3)
         
     def remove_duplicate_first(self,google_sheet_file_name,sheet_name):
        
@@ -137,7 +138,7 @@ class GoogleSheet:
         # print("lt")
         fb_username_url_gs = self.gc.open(google_sheet_file_name).worksheet(sheet_name)
         fb_username_url_gs.update_cell(existing_row + 1,1,date_time_latest)
-        fb_username_url_gs.update_cell(existing_row + 1,2,os.environ['COMPUTERNAME'])
+        fb_username_url_gs.update_cell(existing_row + 1,2,"JUBEL")
         print("latest sheet log add successful")
 
 # print(str(datetime.datetime.now()))
@@ -150,8 +151,8 @@ class GoogleSheet:
 
 class SQLite:
     
-    DB_NAME = "miracle.db"
-    local_user = os.environ['COMPUTERNAME'];
+    DB_NAME = "../miracle.db"
+    local_user = "JUBEL" #os.environ['COMPUTERNAME'];
   
     def __init__(self):
         self.conn = self.create_connection()
@@ -177,11 +178,14 @@ class SQLite:
     def get_local_latest_log(self):
         cursor = self.conn.cursor()
         latest_logs = cursor.execute("SELECT * FROM logs ORDER BY _pk_log DESC LIMIT 1")
+        print("latest log")
+        print(latest_logs)
         log_list= []
         local_log_last = "2021-01-04 01:47:00"
         for log in latest_logs:
+            print(log)
             log_list.append(log)
-        
+
         if len(log_list) > 0:
             local_log_last = log_list[0][1];
 
@@ -200,7 +204,9 @@ class SQLite:
 
     def check_latest_log_update_status(self):
         data = GoogleSheet.get_from_sheet("Campeign 001", "logs")
+        print(data)
         sheet_last_log_date = data[len(data)-1][0]
+        print(sheet_last_log_date)
         local_last_log_date = self.get_local_latest_log()
 
         result = GoogleSheet.date_difference_status(sheet_last_log_date,local_last_log_date)
@@ -208,15 +214,19 @@ class SQLite:
         return result
     
     def sync_data(self):
-        status,latest_date = self.check_latest_log_update_status()
+        status,latest_log_date = self.check_latest_log_update_status()
 
         if status == "sheet_updated":
             datalist = self.get_new_sheet_updated_data()
-            self.update_new_sheet_data_to_local_table(datalist,latest_date)
+            self.update_new_sheet_data_to_local_table(datalist,latest_log_date)
             print(datalist)
         elif status == "all_updated":
             print("local and central data is updated")
-        else: print("local updated")
+        elif status == "local_updated":
+            data = self.get_new_local_updated_data()
+            print("local updated")
+            print(data)
+            GoogleSheet.update_local_facebook_profile_to_sheet("Campeign 001","facebook_profile",data,latest_log_date)
 
 
     @classmethod
@@ -243,6 +253,12 @@ class SQLite:
         self.conn.commit()
 
         c.close()
+
+    def get_new_local_updated_data(self):
+        local_data_list = self.get_facebook_profile()
+        sheet_data_list = GoogleSheet.get_from_sheet("Campeign 001","facebook_profile")
+        new_list = self.get_local_new_updated_data_list(local_data_list,sheet_data_list)
+        return new_list
         
     def get_new_sheet_updated_data(self):
         local_data_list = self.get_facebook_profile()
@@ -250,17 +266,17 @@ class SQLite:
         new_list = self.get_new_sheet_difference_data(local_data_list,sheet_data_list)
         return new_list
 
-    def get_local_new_updated_data(self, local_data_list, sheet_data_list):
+    def get_local_new_updated_data_list(self, local_data_list, sheet_data_list):
         new_list = []
         for local in local_data_list:
             already_added = False
-        for sheet in sheet_data_list[1:]:
-            if str(local[1]) == sheet[1] and (str(local[7]) == sheet[7] or (local[7] == None and sheet[7] == '')):
-                already_added = True
-                break;
-        if not already_added:
-            new_list.append(local) 
-        already_added = False
+            for sheet in sheet_data_list[1:]:
+                if str(local[1]) == sheet[1] and (str(local[7]) == sheet[7] or (local[7] == None and sheet[7] == '')):
+                    already_added = True
+                    break;
+            if not already_added:
+                new_list.append(local)
+            already_added = False
 
         return new_list
     
