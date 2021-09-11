@@ -6,6 +6,7 @@ driver.get("https://www.youtube.com/")
 
 # TODO: 2. we need to sign in
 # Learning Carv Xpath https://youtube.com/playlist?list=PLmRg3gEG2XIackdOpGvb_jEX1ywaplUmh
+# For Python Learning use this book : https://youtu.be/g69ZmML2h_8
 button_xpath = "//tp-yt-paper-button[@aria-label='Sign in']"
 login_button = driver.find_elements_by_xpath(button_xpath)
 login_button[0].click()
