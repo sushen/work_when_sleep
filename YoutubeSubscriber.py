@@ -1,4 +1,4 @@
-# TODO: 1. we need to go youtube
+""" This script can add subscriber to youtube channel"""
 import time
 
 from selenium import webdriver
