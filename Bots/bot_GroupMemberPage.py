@@ -1,5 +1,5 @@
 from Bots.bot_base import BaseBot
-from Pages.GroupMemberPage import GroupMemberPage
+# from Pages.GroupMemberPage import GroupMemberPage
 
 
 class Bot_GroupMemberPage(BaseBot):

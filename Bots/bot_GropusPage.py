@@ -1,6 +1,6 @@
-from Bots.bot_LoginPage import Bot_Login
+# from Bots.bot_LoginPage import Bot_Login
 from Config.config import TestData
-from Pages.GroupPage import GroupPage
+# from Pages.GroupPage import GroupPage
 from Pages.LoginPage import LoginPage
 from Tests.test_base import BaseTest
 
