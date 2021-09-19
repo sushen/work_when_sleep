@@ -44,8 +44,8 @@ login()
 
 
 def open_group_list():
-    with open('postList.txt') as file:
-    # with open('groupList.txt') as file:
+    # with open('postList.txt') as file:
+    with open('groupList.txt') as file:
         lines = file.readlines()
         print("We have to work with " + str(len(lines)) + " link")
 
