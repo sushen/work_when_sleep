@@ -23,16 +23,9 @@ we will put this in ca class'''
 
 
 def text_message():
-    connection = sqlite3.connect('../miracle.db')
-    cursor = connection.cursor()
-    # cursor.execute("SELECT group_link, oid FROM facebook_group")
-    cursor.execute(f"SELECT message, oid FROM message_table WHERE oid ={massage_we_send}")
-    records = cursor.fetchall()
-    text = records[0][0]
+    text = "Hi, I saw you comment on a python group."
     print(text)
     return text
-    connection.commit()
-    connection.close()
 
 
 ''' this parameter function is work when we make parameter for  text_message() and
@@ -65,6 +58,7 @@ def message_activity():
                 find_massage_writing_aria = all_page.test_massage_writing_aria()
 
                 massage_writing = all_page.test_massage_writing(text_message())
+                print(input("This  is not right correct it: "))
                 massage_writing = all_page.test_massage_send()
                 close_massage_box = all_page.test_massage_close()
                 print("We close multiple chat box")
@@ -72,6 +66,7 @@ def message_activity():
 
             else:
                 massage_writing = all_page.test_massage_writing(text_message())
+                print(input("If you think this massage is not right correct it: "))
                 massage_writing = all_page.test_massage_send()
                 close_massage_box = all_page.test_massage_close()
                 print("We find single chat box and send message")
@@ -110,34 +105,47 @@ def update_record(record):
     return record
 
 
-connection = sqlite3.connect('../miracle.db')
-cursor = connection.cursor()
-# cursor.execute("SELECT group_link, oid FROM facebook_group")
-cursor.execute(f"SELECT profile_link, _fk_profile_life_circle, oid FROM facebook_profile WHERE _fk_profile_life_circle={profile_life_circle}")
-records = cursor.fetchall()
-print(records)
+with open('international_student_real_profile.txt') as file:
+    lines = file.readlines()
+    print("We have to work with " + str(len(lines)) + " link")
+    records = lines
 
-index = []
-for fbProfile in records:
-    if len(index) <= 15:
-        index.append(fbProfile)
-        single_record_tuples = str(records[len(index) - 1])
-        fb_link = single_record_tuples[2:single_record_tuples.rfind("',")]
-        profile_life_circle_pk = records[len(index) - 1][2]
-
-        print(single_record_tuples)
-        print(fb_link)
-        print(profile_life_circle_pk)
-        all_page.driver.get(fb_link)
+    for groupLinkList in lines:
+        profile_life_circle_pk = all_page.driver.get(groupLinkList)
+        print(groupLinkList + " link")
+        time.sleep(5)
 
         message_activity()
         update_record(profile_life_circle_pk)
+        # print(input("Press any Key: "))
 
-    else:
-        print("We reach the maximum 15 massage spam limits of sending Private Massage")
-        break
+    # connection = sqlite3.connect('../miracle.db')
+    # cursor = connection.cursor()
+    # # cursor.execute("SELECT group_link, oid FROM facebook_group")
+    # cursor.execute(f"SELECT profile_link, _fk_profile_life_circle, oid FROM facebook_profile WHERE _fk_profile_life_circle={profile_life_circle}")
+    # records = cursor.fetchall()
+    # print(records)
+    # index = []
+    #     for fbProfile in records:
+    #         if len(index) <= 15:
+    #             index.append(fbProfile)
+    #             single_record_tuples = str(records[len(index) - 1])
+    #             fb_link = single_record_tuples[2:single_record_tuples.rfind("',")]
+    #             profile_life_circle_pk = records[len(index) - 1][2]
+    #
+    #             # print(single_record_tuples)
+    #             # print(fb_link)
+    #             # print(profile_life_circle_pk)
+    #             all_page.driver.get(fb_link)
+    #
+    #             message_activity()
+    #             update_record(profile_life_circle_pk)
+    #
+    #         else:
+    #             print("We reach the maximum 15 massage spam limits of sending Private Massage")
+    #             break
 
-connection.commit()
-connection.close()
+# connection.commit()
+# connection.close()
 
 all_page.driver.quit()

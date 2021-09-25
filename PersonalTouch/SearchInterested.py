@@ -30,7 +30,7 @@ chrome_options.add_argument(f"user-data-dir={scriptDirectory}\\userdata")
 
 def driver():
     global driver
-    driver = webdriver.Chrome("./chromedriver.exe", chrome_options=chrome_options)
+    driver = webdriver.Chrome("../chromedriver.exe", chrome_options=chrome_options)
     driver.get("https://facebook.com")
 
 
@@ -135,7 +135,7 @@ def scrollAndSearchUsingXpath():
     pageStart()
 
 def openGropList():
-    with open('TextFiles/GroupFile/groupList.txt') as file:
+    with open('groupList.txt') as file:
         lines = file.readlines()
         print("We have to work with " + str(len(lines)) + " Groups")
 

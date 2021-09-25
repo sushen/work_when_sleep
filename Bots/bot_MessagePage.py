@@ -1,6 +1,6 @@
 from Bots.bot_base import BaseBot
-# from Pages.MessagePage import MessagePage
-# from Pages.ProfilePage import ProfilePage
+from Pages.MessagePage import MessagePage
+from Pages.ProfilePage import ProfilePage
 
 
 class Bot_MessagePage(BaseBot):

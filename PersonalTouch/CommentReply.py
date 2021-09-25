@@ -4,8 +4,8 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys
 from Bots.AllPageBot import AllPageBot
 
-
 all_page = AllPageBot()
+
 try:
     login = all_page.test_login()
     print(input("Press any Key: "))
@@ -13,7 +13,7 @@ except:
     print("You already lodged in")
 
 all_page.driver.get("https://www.facebook.com/groups/10ms.programming/posts/2250510671758752/")
-
+print(input("Press any Key: "))
 
 all_page.driver.implicitly_wait(10)
 
@@ -47,14 +47,13 @@ personal_reply = [
 
 for i in range(len(reply_selector)):
     print("We are trying " + str(i + 1) + " number reply")
-    time.sleep(.25)
+    time.sleep(4)
     reply_selector[i].click()
     ActionChains(all_page.driver)\
         .send_keys(random.choice(personal_reply))\
         .pause(2)\
         .send_keys(Keys.ENTER)\
         .perform()
-    print(input("Press any Key: "))
 
 
 print("Done Working")

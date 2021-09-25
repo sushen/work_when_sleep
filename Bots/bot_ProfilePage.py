@@ -1,5 +1,5 @@
 from Bots.bot_base import BaseBot
-# from Pages.ProfilePage import ProfilePage
+from Pages.ProfilePage import ProfilePage
 
 
 class Bot_ProfilePage(BaseBot):
