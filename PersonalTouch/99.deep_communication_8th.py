@@ -68,6 +68,7 @@ def message_activity():
                 massage_writing = all_page.test_massage_writing(text_message())
                 print(input("This  is not right correct it: "))
                 massage_writing = all_page.test_massage_send()
+                time.sleep(2)
                 close_massage_box = all_page.test_massage_close()
                 print("We close multiple chat box")
 
@@ -76,6 +77,7 @@ def message_activity():
                 massage_writing = all_page.test_massage_writing(text_message())
                 print(input("If you think this massage is not right correct it: "))
                 massage_writing = all_page.test_massage_send()
+                time.sleep(2)
                 close_massage_box = all_page.test_massage_close()
                 print("We find single chat box and send message")
         else:
