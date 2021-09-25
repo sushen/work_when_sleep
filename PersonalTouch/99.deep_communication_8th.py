@@ -1,3 +1,4 @@
+import random
 import sqlite3
 import time
 
@@ -6,6 +7,13 @@ from Pages.MessagePage import MessagePage
 from Pages.ProfilePage import ProfilePage
 
 all_page = AllPageBot()
+
+random_message = [
+    "Hi, I saw you comment on a python group.",
+    "Hi there! I saw you make a comment on a python group.",
+    "Hello, I saw your comment on a python group.",
+    "Hello there! I saw your comment on a python group."
+]
 
 try:
     login = all_page.test_login()
@@ -23,7 +31,7 @@ we will put this in ca class'''
 
 
 def text_message():
-    text = "Hi, I saw you comment on a python group."
+    text = random.choice(random_message)
     print(text)
     return text
 
