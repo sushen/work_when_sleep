@@ -36,8 +36,8 @@ driver.get("https://facebook.com")
 def login():
     try:
         # I use environment veriable  base on this tutorials https://www.youtube.com/watch?v=IolxqkL7cD8
-        username = os.environ.get('facebook_zrliqi_email')
-        password = os.environ.get('facebook_zrliqi_pass')
+        username = os.environ.get('facebook_email')
+        password = os.environ.get('facebook_pass')
 
         driver.find_element_by_id("email").send_keys(username)
         driver.find_element_by_id("pass").send_keys(password)
