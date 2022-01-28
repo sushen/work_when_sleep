@@ -48,6 +48,8 @@ def login():
     except:
         pass
 
+login()
+
 
 def navigateCommentWhenNavigateCommentNotFound():
     driver.implicitly_wait(20)
