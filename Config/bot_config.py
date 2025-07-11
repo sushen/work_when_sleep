@@ -2,7 +2,7 @@ import os
 
 
 class BotData:
-    CHROME_EXECUTABLE_PATH = "../Driver/chromedriver.exe"
+    CHROME_EXECUTABLE_PATH = "../driver/chromedriver.exe"
     FIREFOX_EXECUTABLE_PATH = "../geckodriver.exe"
     BASE_URL = "https://www.facebook.com/"
 
