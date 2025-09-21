@@ -1,17 +1,6 @@
-# JoinGroups_extended.py
-# Purpose: open Facebook Group search tabs for country-specific keywords (no CSV).
-# Requires: your existing driver/login modules:
-#   from driver.driver import Driver
-#   from login.login import Login
+# keywords.py
+# UTF-8 is important because we have accents like "España", "México", etc.
 
-import argparse
-import time
-from urllib.parse import quote_plus
-
-from driver.driver import Driver
-from login.login import Login
-
-# --- Country-specific keywords (non-Binance exchanges + multi-asset + dev/algo) ---
 KEYWORDS = {
     "Germany": {
         "exchange": ["Bitvavo Germany", "Kraken Germany", "Bitstamp DE"],
@@ -134,56 +123,3 @@ KEYWORDS = {
         "dev_algo": ["Algo Trading MX", "Python Traders MX"],
     },
 }
-
-def fb_group_search_url(query: str) -> str:
-    return f"https://www.facebook.com/search/groups/?q={quote_plus(query)}"
-
-def iter_queries(countries, include_categories):
-    for country in countries:
-        items = KEYWORDS.get(country, {})
-        for cat, kws in items.items():
-            if include_categories and cat not in include_categories:
-                continue
-            for kw in kws:
-                yield country, cat, kw
-
-def main():
-    parser = argparse.ArgumentParser(description="Open Facebook Group searches by country keywords (no CSV).")
-    parser.add_argument("--countries", nargs="*", default=[], help="Countries to include (default: all in KEYWORDS)")
-    parser.add_argument("--categories", nargs="*", default=[],
-                        choices=["exchange", "multi_asset", "dev_algo"],
-                        help="Limit to categories (exchange|multi_asset|dev_algo). Default: all.")
-    parser.add_argument("--limit", type=int, default=30, help="Max number of searches to open (tabs).")
-    parser.add_argument("--sleep", type=float, default=2.0, help="Seconds to wait between opening tabs.")
-    args = parser.parse_args()
-
-    # Build list of countries/categories
-    countries = args.countries or list(KEYWORDS.keys())
-    categories = set(args.categories) if args.categories else None
-
-    print(f"[INFO] Countries: {countries}")
-    print(f"[INFO] Categories: {sorted(list(categories)) if categories else 'ALL'}")
-    print(f"[INFO] Limit: {args.limit} | Sleep: {args.sleep}s")
-
-    # Login once
-    driver = Driver().driver
-    driver.get("https://facebook.com")
-    Login().login(driver)
-    time.sleep(3)
-
-    # Open searches
-    opened = 0
-    for country, cat, kw in iter_queries(countries, categories):
-        url = fb_group_search_url(kw)
-        print(f"[OPEN] {country} | {cat} | {kw} -> {url}")
-        driver.execute_script(f"window.open('{url}', '_blank');")
-        opened += 1
-        time.sleep(args.sleep)
-        if opened >= args.limit:
-            break
-        print(input("Next Group:"))
-
-    print(f"[DONE] Opened {opened} Facebook group search tabs.")
-
-if __name__ == "__main__":
-    main()
