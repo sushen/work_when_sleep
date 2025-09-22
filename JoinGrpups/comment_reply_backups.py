@@ -1,224 +1,100 @@
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 import time
-import random
 import pyautogui
 from pathlib import Path
+import random
 
 from driver.driver import Driver
 from login.login import Login
 
+# Simple set of reply lines
+LINES = [
+    "Great point!",
+    "Thanks for sharing!",
+    "Interesting thought.",
+    "Well said!",
+]
 
-# ----------------------------
-# Config
-# ----------------------------
 GROUPS_FILE = "groups_list.txt"
-# How long to wait for a group feed to hydrate before trying to like posts
-GROUP_LOAD_WAIT = 25
-# Pause between opening groups (helps with lazy/hydrated UIs)
-PAUSE_BETWEEN_GROUPS = 6
-# Number of posts to like per group
-LIKE_COUNT = 5
-# Sleep range between likes (human-ish pacing)
-LIKE_SLEEP_RANGE = (1.2, 2.4)
+GROUP_LOAD_WAIT = 20
+LIKE_COUNT = 3
 
+def human_hover(element, duration=0.8):
+    """
+    Move the real mouse pointer gradually to the center of a Selenium element
+    using pyautogui.
+    """
+    location = element.location_once_scrolled_into_view
+    size = element.size
+    # Calculate the center of the element in screen coords
+    center_x = location['x'] + size['width'] / 2
+    center_y = location['y'] + size['height'] / 2
 
+    # Move mouse smoothly to that spot
+    pyautogui.moveTo(center_x, center_y, duration=duration, tween=pyautogui.easeInOutQuad)
 
-
-# ----------------------------
-# Helpers
-# ----------------------------
 def load_group_urls(path: str | Path) -> list[str]:
-    """Read all group URLs from the text file."""
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
 
 
-def rand_sleep(a: float, b: float):
-    time.sleep(random.uniform(a, b))
-
-
-def close_common_overlays(driver):
-    """Best-effort close for cookie / notification overlays that can intercept clicks."""
-    candidates = [
-        # Cookies consent buttons (common variants)
-        (By.XPATH, "//div[@role='dialog']//div[@aria-label='Allow all cookies' or @aria-label='Accept all' or @aria-label='Okay' or @aria-label='OK']"),
-        (By.XPATH, "//div[@role='dialog']//span[normalize-space()='Allow all cookies' or normalize-space()='Accept all' or normalize-space()='OK']/ancestor::*[@role='button']"),
-        # "Turn on notifications" or similar upsells
-        (By.XPATH, "//div[@role='dialog']//div[@aria-label='Not now' or @aria-label='Close']"),
-        (By.XPATH, "//div[@role='dialog']//span[normalize-space()='Not now' or normalize-space()='Close']/ancestor::*[@role='button']"),
-        # Generic dialog close
-        (By.XPATH, "//div[@role='dialog']//div[@aria-label='Close']"),
-    ]
-    for how, sel in candidates:
-        try:
-            elems = driver.find_elements(how, sel)
-            for el in elems:
-                if el.is_displayed():
-                    el.click()
-                    rand_sleep(0.3, 0.6)
-        except Exception:
-            pass
-
-def human_hover(driver, element, duration=0.6):
-    # Get element's bounding box
-    box = driver.execute_script("""
-        const r = arguments[0].getBoundingClientRect();
-        return {x:r.left, y:r.top, w:r.width, h:r.height};
-    """, element)
-
-    win_pos = driver.get_window_position()
-    # Adjust for browser chrome height
-    TITLEBAR_TOOLBAR_OFFSET_Y = 90
-    SIDEBORDER_OFFSET_X = 8
-
-    center_x = win_pos['x'] + SIDEBORDER_OFFSET_X + box['x'] + box['w']/2
-    center_y = win_pos['y'] + TITLEBAR_TOOLBAR_OFFSET_Y + box['y'] + box['h']/2
-
-    pyautogui.moveTo(center_x, center_y, duration=duration)
-
-
-# After your existing `like_first_posts` function, we’ll add a new function for replying.
-def reply_to_post(driver, post, reply_text):
-    try:
-        # Find the reply button inside this post
-        reply_btn = post.find_element(By.CSS_SELECTOR, '[aria-label="Reply"]')
-
-        # Hover with PyAutoGUI to trigger FB's DOM activation
-        human_hover(driver, reply_btn, duration=0.7)
-        time.sleep(0.3)
-
-        # Now click with Selenium (safer than pyautogui.click())
-        reply_btn.click()
-        time.sleep(1)
-
-        # Locate the reply text box
-        reply_box = post.find_element(By.CSS_SELECTOR, 'div[aria-label="Write a reply"]')
-        reply_box.click()
-        reply_box.send_keys(reply_text)
-        time.sleep(0.5)
-        reply_box.send_keys(Keys.ENTER)
-        time.sleep(1)
-        print("Reply posted successfully.")
-
-    except Exception as e:
-        print(f"Reply failed: {e}")
-
-
-
-
-def like_first_posts(driver, count: int = 5):
-    """
-    Like the first 'count' posts in a Facebook group.
-    Uses resilient selectors and proper waits.
-    """
-    wait = WebDriverWait(driver, GROUP_LOAD_WAIT)
-
-    # Let the feed render at least one post
-    try:
-        wait.until(EC.presence_of_element_located((By.XPATH, '//div[@role="article"]')))
-    except TimeoutException:
-        print("No posts detected on this group page (timeout). Skipping.")
-        return
-
-    close_common_overlays(driver)
-
-    # Collect posts; additional small scroll to trigger lazy load
+def like_and_reply(driver, count=3):
     posts = driver.find_elements(By.XPATH, '//div[@role="article"]')
     if not posts:
-        print("No posts found after initial hydrate. Skipping.")
+        print("No posts found.")
         return
 
     liked = 0
-
-    # Candidate selectors for the Like control.
-    # Keep "Like" for English UI. If your FB language is different, replace the text-based ones.
-    like_locators = [
-        # Most reliable: role=button with aria-label containing Like and not already pressed
-        (By.CSS_SELECTOR, '[role="button"][aria-label*="Like"]:not([aria-pressed="true"])'),
-        # Sometimes a span acts as the button
-        (By.CSS_SELECTOR, 'span[role="button"][aria-label*="Like"]:not([aria-pressed="true"])'),
-        # Action bar variant under the post container
-        (By.XPATH, './/*[(@role="button") and contains(@aria-label,"Like") and not(@aria-pressed="true")]'),
-        # Fallback: visible text (works on some UIs/locales)
-        (By.XPATH, './/span[contains(normalize-space(.), "Like")]/ancestor::*[@role="button" and not(@aria-pressed="true")]'),
-    ]
-
-    for idx, post in enumerate(posts, start=1):
+    for post in posts:
         if liked >= count:
             break
 
-        # Bring post into view to ensure its action bar is loaded
         try:
             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", post)
-        except Exception:
-            pass
-        rand_sleep(0.4, 0.8)
+            time.sleep(1)
 
-        # Try to locate a like button within this post
-        like_el = None
-        for how, sel in like_locators:
-            try:
-                candidates = post.find_elements(how, sel)
-                # pick first visible candidate
-                like_el = next((el for el in candidates if el.is_displayed()), None)
+            # Like button
+            like_btn = post.find_element(
+                By.XPATH,
+                './/*[@role="button" and contains(@aria-label,"Like")]'
+            )
+            # human_hover(like_btn)
+            like_btn.click()
+            print("Liked a post.")
 
-                if like_el:
-                    break
-            except Exception:
-                continue
+            # Reply to first comment
+            reply_btn = post.find_element(
+                By.XPATH,
+                './/*[@role="button" and (contains(text(),"Reply") or @aria-label="Reply")]'
+            )
+            reply_btn.click()
+            time.sleep(0.5)
 
-        if not like_el:
-            print(f"Post {idx}: could not locate an unpressed Like button; skipping.")
-            continue
+            editor = driver.find_element(By.XPATH, '//div[@role="textbox" and @contenteditable="true"]')
+            editor.send_keys(random.choice(LINES))
+            print(input("Review Comment :"))
+            editor.send_keys(Keys.ENTER)
+            print("Replied to a comment.")
 
-        # Attempt click with fallback to JS (intercepts/overlays are common)
-        try:
-            like_el.click()
-        except Exception:
-            try:
-                driver.execute_script("arguments[0].click();", like_el)
-            except Exception as e2:
-                print(f"Post {idx}: click failed ({e2}); retrying after closing overlays.")
-                close_common_overlays(driver)
-                try:
-                    driver.execute_script("arguments[0].click();", like_el)
-                except Exception as e3:
-                    print(f"Post {idx}: final click failed ({e3}); skipping.")
-                    continue
+            liked += 1
+            time.sleep(2)
 
-        liked += 1
-        print(f"Liked post {idx} (total liked: {liked})")
-        from selenium.webdriver.common.action_chains import ActionChains
-        actions = ActionChains(driver)
-        actions.move_to_element(post).perform()
-        reply_to_post(driver, post, reply_text="Conversational Wisdom")
-        print(input("Next Comment:"))
-        rand_sleep(*LIKE_SLEEP_RANGE)
-
-    print(f"Finished this group: liked {liked} post(s).")
+        except Exception as e:
+            print(f"Skipped a post due to error: {e}")
 
 
-# ----------------------------
-# Main
-# ----------------------------
-driver = Driver().driver
-driver.get("https://facebook.com")
-Login().login(driver)
+if __name__ == "__main__":
+    driver = Driver().driver
+    driver.get("https://facebook.com")
+    Login().login(driver)
 
-groups = load_group_urls(GROUPS_FILE)
-print(f"Loaded {len(groups)} groups from {GROUPS_FILE}")
+    groups = load_group_urls(GROUPS_FILE)
+    for i, url in enumerate(groups, start=1):
+        print(f"[{i}/{len(groups)}] Visiting {url}")
+        driver.get(url)
+        time.sleep(3)
+        like_and_reply(driver, count=LIKE_COUNT)
 
-for i, url in enumerate(groups, start=1):
-    print(f"[{i}/{len(groups)}] Visiting {url}")
-    driver.get(url)
-    # allow group page to settle a bit before we search for posts
-    rand_sleep(PAUSE_BETWEEN_GROUPS, PAUSE_BETWEEN_GROUPS + 2)
-    like_first_posts(driver, count=LIKE_COUNT)
-    time.sleep(10)
-    print(input("Next Group:"))
-
-print("All groups processed.")
+    print("All groups processed.")
