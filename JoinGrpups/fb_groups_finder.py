@@ -32,6 +32,7 @@ class FBGroupFinder:
         max_results_per_search: int = 30,
         search_sleep: float = 2.0,
         wait_seconds: int = 12,
+        save_all: bool = False,  # <--- ADD THIS
     ):
         self.min_members = min_members
         self.exclude_tokens = [t.strip().lower() for t in (exclude_tokens or ["Bangladesh", "BD", "Bangladeshi"]) if t.strip()]
@@ -43,6 +44,7 @@ class FBGroupFinder:
 
         self.driver = Driver().driver
         self.wait = WebDriverWait(self.driver, self.wait_seconds)
+        self.save_all = save_all
 
     # ---------- Public API ----------
     def login(self):
@@ -75,9 +77,10 @@ class FBGroupFinder:
                 groups = []
 
             accepted = [g for g in groups if self._accept_group(g["name"], g["members"])]
-            print(f"[INFO] Results {len(groups)} | Accepted {len(accepted)}")
+            to_save = groups if self.save_all else accepted
+            print(f"[INFO] Results {len(groups)} | Accepted {len(accepted)} | ToSave {len(to_save)}")
 
-            links = [g["url"] for g in accepted]
+            links = [g["url"] for g in to_save]
             if links:
                 self._save_links(links)
                 accepted_total += len(links)
@@ -89,7 +92,7 @@ class FBGroupFinder:
 
             processed_kw += 1
             time.sleep(self.search_sleep)
-            print(input("Next Group :"))
+            # print(input("Next Group :"))
 
         print(f"\n[DONE] Processed {processed_kw} keyword searches. Accepted links total: {accepted_total}")
 
@@ -144,31 +147,62 @@ class FBGroupFinder:
     def _scrape_groups_from_search(self, max_results: int = 30, scroll_pause: float = 1.2):
         """
         Scrapes current search page into: [{name, members, url}, ...]
+        Prints each found group link to the console.
         """
         driver, wait = self.driver, self.wait
         results, seen = [], set()
 
         def collect():
-            # FB DOM changes; selectors are intentionally broad
+            # Try to find "cards" first; if none, fall back to scanning the whole page.
             cards = driver.find_elements(By.CSS_SELECTOR, "div[role='article'], div.x1y1aw1k")
+            if not cards:
+                cards = [driver]  # fallback: search anchors on the page
+
             for card in cards:
                 try:
-                    link_el = card.find_element(By.CSS_SELECTOR, "a[role='link'][href*='/groups/']")
-                    url = link_el.get_attribute("href")
-                    name = link_el.text.strip()
+                    # Find all anchors that look like group links within this card/page
+                    anchors = card.find_elements(By.CSS_SELECTOR, "a[href*='/groups/']")
+                    best = None
+                    # Prefer the anchor with visible text (group title)
+                    for a in anchors:
+                        href = (a.get_attribute("href") or "").strip()
+                        text = (a.text or "").strip()
+                        if "/groups/" in href and text:
+                            best = a
+                            break
+                    # Fallback: if no text anchor, use the first groups/ anchor (e.g., photo link)
+                    if not best and anchors:
+                        best = anchors[0]
+
+                    if not best:
+                        continue
+
+                    # Extract & normalize URL; prefer clean URL w/o params, no trailing slash
+                    url = (best.get_attribute("href") or "").split("?")[0].rstrip("/")
+                    name = (best.text or "").strip()
+
+                    # If the chosen anchor had no text, try another anchor that has text
+                    if not name:
+                        for a in anchors:
+                            t = (a.text or "").strip()
+                            if t:
+                                name = t
+                                break
+
+                    # Find a member count string if present (keep your heuristic)
                     member_text = ""
-                    info_candidates = card.find_elements(
-                        By.XPATH, ".//*[contains(translate(text(),'MEMBER','member'),'member')]"
-                    )
-                    for c in info_candidates:
-                        t = c.text.strip()
+                    for c in card.find_elements(By.XPATH,
+                                                ".//*[contains(translate(text(),'MEMBER','member'),'member')]"):
+                        t = (c.text or "").strip()
                         if "member" in t.lower():
                             member_text = t
                             break
                     members = self._parse_member_count(member_text)
+
                     key = (url, name)
-                    if key not in seen and name and url:
+                    if url and name and key not in seen:
                         seen.add(key)
+                        print(f"[FOUND] {name} -> {url}")  # <-- print each group link
                         results.append({"name": name, "members": members, "url": url})
                 except Exception:
                     continue

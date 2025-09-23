@@ -43,8 +43,8 @@ def text_to_speech(text):
 
     # List available voices (male/female, different accents)
     voices = engine.getProperty("voices")
-    for i, voice in enumerate(voices):
-        print(f"Voice {i}: {voice.name} ({voice.id})")
+    # for i, voice in enumerate(voices):
+    #     print(f"Voice {i}: {voice.name} ({voice.id})")
 
     # Choose a voice (e.g., 0 = first, 1 = second)
     engine.setProperty("voice", voices[0].id)
@@ -196,6 +196,7 @@ def like_and_reply(driver, count=3):
             review_comment_text = "Review Comment :"
             text_to_speech(review_comment_text)
             print(input(review_comment_text))
+            time.sleep(4)
             # editor.send_keys(Keys.ENTER)
             print("Replied to a comment.")
 
@@ -203,6 +204,7 @@ def like_and_reply(driver, count=3):
             time.sleep(1.2)
 
         except Exception as e:
+            # text_to_speech(e)
             print(f"Skipped a post due to error: {e}")
 
 

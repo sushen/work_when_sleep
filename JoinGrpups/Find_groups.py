@@ -38,6 +38,7 @@ def main():
         max_results_per_search=args.max_results_per_search,
         search_sleep=args.sleep,
         wait_seconds=args.wait_seconds,
+        save_all=True,
     )
 
     print(f"[INFO] Countries={countries}")

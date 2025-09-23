@@ -32,4 +32,4 @@ for i, url in enumerate(groups, start=1):
     driver.get(url)
     # let page load
     time.sleep(PAUSE_BETWEEN)
-    print(input("Next Groups :"))
+    # print(input("Next Groups :"))
