@@ -13,20 +13,111 @@ from login.login import Login
 
 # ---------- Config ----------
 LINES = [
-    "חוכמה זורמת היכן שהשיחות מתחברות.",
-    "בונים גשרים של חוכמה דרך דיאלוג.",
-    "החיבור מעמיק כאשר החוכמה מדברת.",
-    "שיחות הופכות לחוכמה כשהן באמת מתחברות.",
-    "קישור מוחות, שיתוף חוכמה, יצירת חיבור.",
-    "היכן שדיאלוג פוגש חוכמה, החיבור צומח.",
-    "קולות מחוברים, חוכמה משותפת.",
-    "חוכמה במילים, עוצמה בחיבור.",
-    "האמנות של חיבור היא השורש של חוכמת השיחה.",
-    "שיחות משמעותיות אורגות חוטים של חוכמה וחיבור."
+    "Wisdom thrives where voices meet.",
+    "Conversations weave pathways of wisdom.",
+    "When minds connect, wisdom awakens.",
+    "Connection is the soil where wisdom grows.",
+    "Shared words, deeper wisdom.",
+    "Dialogue blossoms into wisdom.",
+    "Connection is the echo of wisdom.",
+    "Wisdom is born in genuine exchange.",
+    "Minds linked, wisdom multiplied.",
+    "Connection turns dialogue into insight.",
+    "Every bridge of words carries wisdom.",
+    "Wisdom is the bridge between hearts.",
+    "Conversations link wisdom to connection.",
+    "Where voices bridge, wisdom flows.",
+    "Dialogue is the thread weaving wisdom.",
+    "Wisdom bridges the gap between minds.",
+    "Connected thought builds bridges of wisdom.",
+    "Every connection strengthens wisdom.",
+    "Conversations are the bridges of insight.",
+    "Shared wisdom creates lasting links.",
+    "Wisdom flows along the currents of dialogue.",
+    "Conversations carry wisdom like rivers.",
+    "Connection channels the energy of wisdom.",
+    "Where voices flow together, wisdom shines.",
+    "Dialogue sparks the current of wisdom.",
+    "Connection fuels the flow of wisdom.",
+    "Every conversation is a stream of insight.",
+    "Wisdom drifts where connection flows.",
+    "Dialogue pours wisdom into the shared space.",
+    "Connected words ripple with wisdom.",
+    "Wisdom blooms through shared words.",
+    "Connection cultivates wisdom.",
+    "Conversations grow gardens of wisdom.",
+    "The seed of wisdom is planted in dialogue.",
+    "Wisdom grows where minds connect.",
+    "Dialogue is fertile ground for wisdom.",
+    "Connected voices nurture wisdom.",
+    "Conversations blossom into wisdom’s fruit.",
+    "Connection waters the roots of wisdom.",
+    "Every shared word is a seed of wisdom.",
+    "Wisdom belongs to the voices that gather.",
+    "Connection creates a circle of wisdom.",
+    "Collective voices give rise to wisdom.",
+    "Where we meet, wisdom is made.",
+    "Shared dialogue builds wisdom for all.",
+    "Wisdom lives in the space between us.",
+    "Connection creates wisdom greater than one.",
+    "Conversations unite us in shared insight.",
+    "Many voices, one wisdom.",
+    "Wisdom is the gift of connection.",
+    "Dialogue lights the path to wisdom.",
+    "Connection sparks wisdom’s flame.",
+    "Wisdom shines where words are shared.",
+    "Conversations uncover hidden wisdom.",
+    "Connection reveals wisdom’s glow.",
+    "The light of wisdom emerges from dialogue.",
+    "Wisdom illuminates when minds connect.",
+    "Conversations spark wisdom like stars.",
+    "Connection is the lantern of wisdom.",
+    "Wisdom is discovered in shared stories.",
+    "Dialogue is the harmony of wisdom.",
+    "Connection composes the song of wisdom.",
+    "Wisdom resonates through conversation.",
+    "Every connected voice is part of wisdom’s chorus.",
+    "Dialogue creates the rhythm of wisdom.",
+    "Connection makes wisdom sing.",
+    "Wisdom hums where words unite.",
+    "Conversations orchestrate wisdom.",
+    "Connected voices form wisdom’s melody.",
+    "Wisdom dances in the rhythm of dialogue.",
+    "Conversations are maps to wisdom.",
+    "Wisdom is the journey we walk together.",
+    "Dialogue is the compass of wisdom.",
+    "Connection charts the course to wisdom.",
+    "Shared voices guide the way to wisdom.",
+    "Wisdom unfolds in the journey of conversation.",
+    "Dialogue explores the depths of wisdom.",
+    "Connection discovers wisdom in new places.",
+    "Conversations open paths of insight.",
+    "Wisdom is found along connected journeys.",
+    "Wisdom empowers connection.",
+    "Dialogue is strength shared.",
+    "Connected voices create powerful wisdom.",
+    "Wisdom fuels the power of dialogue.",
+    "Connection multiplies wisdom’s force.",
+    "Dialogue is the spark of collective power.",
+    "Wisdom strengthens when shared.",
+    "Connection turns words into force.",
+    "Wisdom is power rooted in conversation.",
+    "Shared voices amplify wisdom’s strength.",
+    "Conversations open galaxies of wisdom.",
+    "Connection unlocks the mystery of wisdom.",
+    "Wisdom is the constellation of shared thoughts.",
+    "Dialogue is the universe of connection.",
+    "Wisdom expands where voices meet.",
+    "Connection is the horizon of wisdom.",
+    "Conversations are stars in the sky of wisdom.",
+    "Wisdom stretches beyond words, through connection.",
+    "Dialogue opens infinite doors of wisdom.",
+    "Connected voices shape the cosmos of wisdom."
 ]
 
+
 GROUPS_FILE = "groups_list.txt"
-LIKE_COUNT = 3
+LIKE_COUNT = 2
 
 # Make pyautogui a bit safer/human
 pyautogui.FAILSAFE = True
@@ -186,7 +277,7 @@ def like_and_reply(driver, count=3):
                 print("Could not click Reply; skipping this post.")
                 continue
 
-            time.sleep(0.4)
+            time.sleep(2)
 
             # --- Type reply (you keep your review pause) ---
             editor = driver.find_element(By.XPATH, '//div[@role="textbox" and @contenteditable="true"]')
@@ -196,12 +287,13 @@ def like_and_reply(driver, count=3):
             review_comment_text = "Review Comment :"
             text_to_speech(review_comment_text)
             print(input(review_comment_text))
-            time.sleep(4)
+            # time.sleep(4)
             # editor.send_keys(Keys.ENTER)
+            # time.sleep(4)
             print("Replied to a comment.")
 
             liked += 1
-            time.sleep(1.2)
+            time.sleep(4)
 
         except Exception as e:
             # text_to_speech(e)
@@ -222,11 +314,11 @@ if __name__ == "__main__":
     for i, url in enumerate(groups, start=1):
         next_group_text = "Next Groups:"
         text_to_speech(next_group_text)
-        print(input(next_group_text))
-        time.sleep(10)
+        # print(input(next_group_text))
+        time.sleep(4)
         print(f"[{i}/{len(groups)}] Visiting {url}")
         driver.get(url)
-        time.sleep(10)
+        time.sleep(4)
         like_and_reply(driver, count=LIKE_COUNT)
 
     all_processed = "All groups processed."
