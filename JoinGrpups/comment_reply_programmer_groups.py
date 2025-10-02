@@ -29,7 +29,7 @@ LINES = [
 
 
 GROUPS_FILE = "programmers_groups.txt.txt"
-LIKE_COUNT = 1
+LIKE_COUNT = 10
 
 # Make pyautogui a bit safer/human
 pyautogui.FAILSAFE = True
