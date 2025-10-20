@@ -20,4 +20,4 @@ def remove_lines(groups_file, not_relevant_file, output_file):
 
 
 if __name__ == "__main__":
-    remove_lines("groups_list.txt", "not_relevant.txt", "filtered_groups_list.txt")
+    remove_lines("groups_list.txt", "programmers_groups.txt", "filtered_groups_list.txt")

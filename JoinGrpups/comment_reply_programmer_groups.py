@@ -28,7 +28,7 @@ LINES = [
 
 
 
-GROUPS_FILE = "programmers_groups.txt.txt"
+GROUPS_FILE = "programmers_groups.txt"
 LIKE_COUNT = 10
 
 # Make pyautogui a bit safer/human
@@ -198,10 +198,10 @@ def like_and_reply(driver, count=3):
             editor.send_keys(reply_comment)
             review_comment_text = "Review Comment :"
             text_to_speech(review_comment_text)
-            # print(input(review_comment_text))
-            time.sleep(5)
-            editor.send_keys(Keys.ENTER)
-            time.sleep(8)
+            print(input(review_comment_text))
+            # time.sleep(5)
+            # editor.send_keys(Keys.ENTER)
+            # time.sleep(8)
             print("Replied to a comment.")
 
             liked += 1
@@ -226,7 +226,8 @@ if __name__ == "__main__":
     for i, url in enumerate(groups, start=1):
         next_group_text = "Next Groups:"
         text_to_speech(next_group_text)
-        print(input(next_group_text))
+        # print(input(next_group_text))
+
         time.sleep(4)
         print(f"[{i}/{len(groups)}] Visiting {url}")
         driver.get(url)

@@ -331,11 +331,11 @@ if __name__ == "__main__":
     for i, url in enumerate(groups, start=1):
         next_group_text = "Next Groups:"
         text_to_speech(next_group_text)
-        print(input(next_group_text))
+        # print(input(next_group_text))
         time.sleep(4)
         print(f"[{i}/{len(groups)}] Visiting {url}")
         driver.get(url)
-        store_link_in_file(url)
+        # store_link_in_file(url)
         time.sleep(4)
         like_and_reply(driver, count=LIKE_COUNT)
 

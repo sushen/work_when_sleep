@@ -8,7 +8,7 @@ from pathlib import Path
 from driver.driver import Driver
 from login.login import Login
 
-GROUPS_FILE = "groups_list.txt"
+GROUPS_FILE = "programmers_groups.txt"
 PAUSE_BETWEEN = 5        # seconds to let each group page settle before/after actions
 WAIT_SECONDS = 12        # selenium explicit wait timeout
 
