@@ -10,3 +10,5 @@ class TestData:
     PASSWORD = os.environ.get('facebook_zrliqi_pass')
 
     LOGIN_PAGE_TITLE = "Facebook – log in or sign up"
+    REDDIT_BASE_URL = "[https://www.reddit.com/r/](https://www.reddit.com/r/)"
+    TARGET_SUBREDDIT = "algotrading"
