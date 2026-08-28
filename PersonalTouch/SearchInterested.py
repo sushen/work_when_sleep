@@ -3,7 +3,9 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 import pathlib
 import winsound
 import re
@@ -15,7 +17,8 @@ print("This Script Start " + time.ctime())
 # Setting the chrome_options
 global chrome_options
 chrome_options = Options()
-scriptDirectory = pathlib.Path().absolute()
+scriptDirectory = pathlib.Path(__file__).resolve().parent
+projectDirectory = scriptDirectory.parent
 chrome_options.add_argument("--start-maximized")
 chrome_options.add_argument("--user-data-dir=chrome-data")
 chrome_options.add_argument('--profile-directory=Profile 8')
@@ -30,7 +33,8 @@ chrome_options.add_argument(f"user-data-dir={scriptDirectory}\\userdata")
 
 def driver():
     global driver
-    driver = webdriver.Chrome("../chromedriver.exe", chrome_options=chrome_options)
+    chrome_service = Service(str(projectDirectory / "driver" / "chromedriver.exe"))
+    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
     driver.get("https://facebook.com")
 
 
@@ -40,9 +44,9 @@ def login():
         username = os.environ.get('my_facebook_email')
         password = os.environ.get('my_facebook_pass')
 
-        driver.find_element_by_name("email").send_keys(username)
-        driver.find_element_by_name("pass").send_keys(password)
-        driver.find_element_by_name("login").click()
+        driver.find_element(By.NAME, "email").send_keys(username)
+        driver.find_element(By.NAME, "pass").send_keys(password)
+        driver.find_element(By.NAME, "login").click()
         print(input("Press any Key: "))
         print("Login work Successfully ")
 
@@ -78,12 +82,12 @@ def scrollUp():
     scrollUpAction.perform()
 
 def searchWordUsingXpath():
-    search_interested_word_xpath = "//div[contains(text(),interested)]"
-    searchWordhAria = driver.find_elements_by_xpath(search_interested_word_xpath)
+    search_interested_word_xpath = "//div[contains(., 'interested')]"
+    searchWordhAria = driver.find_elements(By.XPATH, search_interested_word_xpath)
     # print(searchWordhAria)
     # print(str(len(searchWordhAria)) + " interested Word Found")
 
-    if driver.find_elements_by_xpath(search_interested_word_xpath):
+    if driver.find_elements(By.XPATH, search_interested_word_xpath):
         print(str(searchWordhAria[0]) + " :is the Elements" + "\n" + search_interested_word_xpath + " :For this xpath")
         # print(searchWordhAria[0].text)
         allText = searchWordhAria[0].text
@@ -121,7 +125,7 @@ def scrollAndSearchUsingXpath():
         driver.implicitly_wait(30)
         scrollUp()
     grpupPostXpath = "//div[@aria-label='Actions for this post']"
-    grpupPostXpathAria = driver.find_elements_by_xpath(grpupPostXpath)
+    grpupPostXpathAria = driver.find_elements(By.XPATH, grpupPostXpath)
     # print(grpupPostXpathAria)
     print("First " + str(len(grpupPostXpathAria)) + " Post are searching by bot")
 
@@ -135,7 +139,7 @@ def scrollAndSearchUsingXpath():
     pageStart()
 
 def openGropList():
-    with open('groupList.txt') as file:
+    with open(scriptDirectory / 'groupList.txt') as file:
         lines = file.readlines()
         print("We have to work with " + str(len(lines)) + " Groups")
 

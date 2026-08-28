@@ -1,6 +1,12 @@
 from selenium.webdriver.common.by import By
 
+from pathlib import Path
+import sys
 import time
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from driver.driver import Driver
 # from googlesheet.connection import Connection
@@ -45,7 +51,7 @@ for element in element_list:
 unique_links = list(set(link_list))
 
 # Save to file
-with open(r"../AllFriendList.txt", "w", encoding="utf-8") as f:
+with (PROJECT_ROOT / "AllFriendList.txt").open("w", encoding="utf-8") as f:
     for link in unique_links:
         f.write(link + "\n")
 

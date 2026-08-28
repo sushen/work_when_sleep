@@ -1,0 +1,655 @@
+You are working inside my existing Python project:
+
+    work_when_sleep_v_2/
+
+Do NOT redesign or restructure the whole project.
+
+The existing Facebook scanner is:
+
+    PersonalTouch/SearchInterested.py
+
+The goal is to EXTEND and modernize this existing script while preserving
+its current purpose and existing project architecture.
+
+============================================================
+PROJECT CONTEXT
+============================================================
+
+Relevant existing structure:
+
+    work_when_sleep_v_2/
+    │
+    ├── driver/
+    │   ├── __init__.py
+    │   ├── chromedriver.exe
+    │   └── driver.py
+    │
+    ├── login/
+    ├── Pages/
+    ├── JoinGrups/
+    ├── DataCollection/
+    ├── DatabaseCreation/
+    ├── Preparation/
+    ├── Tests/
+    │
+    └── PersonalTouch/
+        ├── userdata/
+        ├── Blueprint.txt
+        ├── groupList.txt
+        ├── postList.txt
+        ├── Facebook-Group-Navigation-Bot.py
+        ├── Facebook-Post-comment-Like-Bot.py
+        ├── CollectMemberFromComment.py
+        ├── CommentReply.py
+        └── SearchInterested.py
+
+The current SearchInterested.py already uses:
+
+    Selenium
+    Chrome WebDriver
+    XPath
+    ActionChains
+    Regex
+    winsound
+    groupList.txt
+    Chrome userdata/profile
+    environment variables for Facebook credentials
+
+Preserve these foundations unless there is a concrete reason to change them.
+
+============================================================
+PRIMARY OBJECTIVE
+============================================================
+
+Transform SearchInterested.py from a simple:
+
+    "find the word interested"
+
+scanner into a more useful:
+
+    "Facebook opportunity/relevance scanner"
+
+The scanner should find Facebook posts that contain user-defined
+relevant expressions.
+
+Do NOT use:
+
+    Machine Learning
+    AI
+    NLP models
+    external AI APIs
+
+Use normal Python and Regular Expressions.
+
+============================================================
+IMPORTANT: DO NOT OVER-ENGINEER
+============================================================
+
+First understand the existing code.
+
+Do not immediately create:
+
+    config.py
+    patterns.py
+    scanner package
+    database
+    new architecture
+
+unless the existing code genuinely requires them.
+
+Initially, improve SearchInterested.py in place.
+
+Keep the project understandable for a human developer who is already
+working with this older codebase.
+
+============================================================
+1. KEEP GROUP SCANNING
+============================================================
+
+Continue using:
+
+    PersonalTouch/groupList.txt
+
+The scanner should:
+
+    1. Load the group URLs.
+    2. Open one group.
+    3. Wait for the page to load.
+    4. Find available Facebook post containers.
+    5. Extract information from individual posts.
+    6. Check each post against the relevance Regex patterns.
+    7. Extract the post timestamp.
+    8. Determine how recent the post is.
+    9. Alert the user if a relevant post is found.
+   10. Pause so the user can inspect the result.
+   11. Continue when the user chooses to continue.
+   12. Move to the next group.
+
+============================================================
+2. POST-LEVEL PROCESSING
+============================================================
+
+The old approach searches the whole page for:
+
+    "interested"
+
+Do not continue relying on a broad page-level text search if
+individual post containers can be identified.
+
+The preferred conceptual flow is:
+
+    Facebook page
+        ↓
+    identify post containers
+        ↓
+    process each post separately
+        ↓
+    extract post text
+        ↓
+    extract timestamp
+        ↓
+    run Regex matching
+
+Use Selenium/XPath/DOM inspection.
+
+Do not use image recognition.
+
+Do not use OCR.
+
+============================================================
+3. REGEX RELEVANCE ENGINE
+============================================================
+
+Replace the hard-coded "interested" concept with multiple Regex
+patterns.
+
+The patterns should be easy to modify.
+
+The initial patterns can include examples such as:
+
+    r"\binterested\b"
+    r"\blooking\s+for\b"
+    r"\bneed(?:s|ed|ing)?\b"
+    r"\bwants?\b"
+    r"\bhiring\b"
+    r"\bhire\b"
+    r"\bfreelanc(?:e|er|ing)\b"
+    r"\bdeveloper\b"
+    r"\bdesigner\b"
+    r"\bwebsite\b"
+
+These are only starting examples.
+
+Do NOT assume this list is final.
+
+Make the Regex matching:
+
+    case-insensitive
+    word-aware
+    easy to extend
+
+For each matching post, record WHICH pattern matched.
+
+Example:
+
+    matched_pattern = r"\blooking\s+for\b"
+
+A post can potentially match multiple patterns.
+
+Avoid duplicate alerts for the same post caused by nested DOM elements.
+
+============================================================
+4. TIMESTAMP / FRESHNESS
+============================================================
+
+This is very important.
+
+For each detected post, attempt to extract the timestamp using
+the Facebook DOM/XPath structure.
+
+Do not guess the timestamp from the post text.
+
+The scanner should support Facebook-style relative timestamps where
+available, such as:
+
+    10s
+    45s
+    1m
+    3m
+    5m
+    1h
+    2h
+    1d
+
+Also handle reasonable variations where possible.
+
+Create a timestamp parsing function such as:
+
+    parse_post_age(...)
+
+It should return the post age in seconds when it can determine it.
+
+If the timestamp cannot be determined:
+
+    do NOT invent a timestamp.
+
+Return an unknown/None state and continue safely.
+
+============================================================
+5. FRESHNESS LEVELS
+============================================================
+
+Use freshness as a separate concern from Regex relevance.
+
+Initial behavior:
+
+    <= 60 seconds
+        VERY_RECENT
+
+    > 60 seconds and <= 5 minutes
+        RECENT
+
+    > 5 minutes
+        NORMAL
+
+If the exact timestamp cannot be determined:
+
+    UNKNOWN
+
+Keep these thresholds easy to modify.
+
+============================================================
+6. ALERT SYSTEM
+============================================================
+
+Continue using the existing Windows:
+
+    winsound
+
+When a relevant post is found:
+
+    VERY_RECENT
+        → DOUBLE BEEP
+
+    RECENT
+        → SINGLE BEEP
+
+    NORMAL
+        → optional normal notification/beep
+
+The most important alert is:
+
+    VERY_RECENT
+        → beep
+        → beep
+
+This allows me to immediately understand that a potentially relevant
+post was posted very recently.
+
+Do not make the scanner continuously beep for the same post.
+
+============================================================
+7. HUMAN REVIEW
+============================================================
+
+When a relevant post is detected, display useful information.
+
+For example:
+
+    ==========================================
+    MATCH FOUND
+    ==========================================
+
+    Group:
+    <group name>
+
+    Matched pattern:
+    <regex pattern>
+
+    Post age:
+    45 seconds
+
+    Freshness:
+    VERY_RECENT
+
+    Post text:
+    <text>
+
+    ==========================================
+
+Then alert the user.
+
+Pause for human inspection.
+
+The user should be able to continue scanning after reviewing it.
+
+Do not automatically:
+
+    comment
+    reply
+    message
+    contact the author
+    submit anything
+
+This scanner is for detection and human review.
+
+============================================================
+8. DUPLICATE DETECTION
+============================================================
+
+Facebook dynamically changes the DOM while scrolling.
+
+The same post may appear in multiple scans.
+
+Prevent repeatedly alerting on the same post.
+
+Prefer identifying a post using a stable identifier when available,
+such as:
+
+    post URL
+    post ID
+    another reliable DOM-derived identifier
+
+If no stable ID is available, use a sensible fallback.
+
+Maintain a set such as:
+
+    seen_posts = set()
+
+Do not let duplicate DOM elements create duplicate alerts.
+
+============================================================
+9. SCROLLING
+============================================================
+
+The objective is NOT maximum speed.
+
+The priority is:
+
+    reliability
+    correct detection
+    correct timestamps
+    stable operation
+    human review
+
+Use Selenium waits appropriately.
+
+Avoid replacing everything with extremely fast scrolling.
+
+The scanner should progressively load more posts and inspect newly
+loaded content.
+
+Use explicit waits where practical instead of blindly relying on
+large fixed sleep values.
+
+Do not attempt to bypass or defeat Facebook's security or
+anti-automation mechanisms.
+
+============================================================
+10. ERROR HANDLING
+============================================================
+
+The current script contains broad exception handling such as:
+
+    except:
+        pass
+
+Do not silently swallow errors.
+
+Replace this with appropriate exception handling.
+
+Errors should be reported clearly, for example:
+
+    [ERROR] Could not load group
+    [ERROR] Could not extract timestamp
+    [ERROR] Post became stale
+    [ERROR] Could not locate post container
+
+A failure on one post should generally NOT terminate the entire
+scanner.
+
+A failure on one group should generally allow the scanner to continue
+to the next group when safe.
+
+============================================================
+11. LOGGING
+============================================================
+
+Improve the current console output.
+
+Use readable status messages such as:
+
+    [START]
+    [GROUP 1/20] Opening group
+    [GROUP 1/20] Page loaded
+    [SCAN] 15 posts detected
+    [MATCH] Looking for a developer
+    [MATCH] Pattern: looking for
+    [TIME] Post age: 42 seconds
+    [ALERT] VERY_RECENT → DOUBLE BEEP
+    [PAUSED] Waiting for user
+    [CONTINUE]
+    [GROUP 2/20] Opening group
+
+Also keep the existing total running-time measurement.
+
+============================================================
+12. RESULT INFORMATION
+============================================================
+
+Internally represent a match approximately like:
+
+    {
+        "group_name": "...",
+        "group_url": "...",
+        "post_text": "...",
+        "post_url": "...",
+        "matched_patterns": [...],
+        "timestamp_raw": "...",
+        "post_age_seconds": 45,
+        "freshness_level": "VERY_RECENT"
+    }
+
+Do not require a database for this first version.
+
+============================================================
+13. PRESERVE EXISTING LOGIN APPROACH
+============================================================
+
+The existing script obtains:
+
+    my_facebook_email
+    my_facebook_pass
+
+from environment variables.
+
+Do not hard-code credentials.
+
+Preserve the existing userdata/profile approach unless there is a
+clear technical problem.
+
+============================================================
+14. CHROME DRIVER
+============================================================
+
+Inspect the existing driver configuration carefully.
+
+The current script has multiple user-data-dir arguments.
+
+Clean up obvious configuration problems, but do not unnecessarily
+change the existing Chrome profile behavior.
+
+Make sure the final configuration has one clear source of truth for
+the Selenium user-data directory/profile.
+
+============================================================
+15. IMPORTANT DEVELOPMENT PROCESS
+============================================================
+
+Before modifying code:
+
+    1. Inspect SearchInterested.py completely.
+    2. Inspect driver/driver.py.
+    3. Inspect the relevant existing project files if needed.
+    4. Understand how the existing project handles Selenium.
+    5. Preserve working components.
+    6. Then refactor SearchInterested.py.
+
+Do not blindly rewrite the entire project.
+
+Do not delete existing functionality without explaining why.
+
+============================================================
+16. FACEBOOK DOM / XPATH
+============================================================
+
+The existing code uses XPath to locate Facebook content.
+
+Continue using XPath/Selenium.
+
+However, make the selectors modular enough that Facebook DOM changes
+can be handled in one place.
+
+For example, conceptually:
+
+    find_post_containers()
+    extract_post_text(post)
+    extract_post_timestamp(post)
+    extract_post_url(post)
+
+Do not scatter XPath strings throughout the entire program.
+
+If an XPath is uncertain, inspect the actual DOM rather than guessing.
+
+============================================================
+17. FINAL TARGET ARCHITECTURE
+============================================================
+
+The final SearchInterested.py should conceptually operate like this:
+
+    START
+      ↓
+    Initialize Selenium
+      ↓
+    Open Facebook
+      ↓
+    Verify/login session
+      ↓
+    Load groupList.txt
+      ↓
+    ┌───────────────────────────────┐
+    │          GROUP LOOP           │
+    └───────────────────────────────┘
+      ↓
+    Open group
+      ↓
+    Wait for posts
+      ↓
+    Find post containers
+      ↓
+    ┌───────────────────────────────┐
+    │           POST LOOP           │
+    └───────────────────────────────┘
+      ↓
+    Extract post text
+      ↓
+    Run Regex relevance engine
+      ↓
+    Match?
+      │
+      ├── NO → continue
+      │
+      └── YES
+             ↓
+        Extract timestamp
+             ↓
+        Calculate post age
+             ↓
+        Determine freshness
+             ↓
+        Alert user
+             ↓
+        Display match
+             ↓
+        Pause for human review
+             ↓
+        Continue scanning
+             ↓
+        Scroll/load more posts
+             ↓
+        Repeat
+             ↓
+        Next group
+             ↓
+           END
+
+
+============================================================
+18. DO NOT CHANGE THE CORE IDEA
+============================================================
+
+This is still the same old SearchInterested.py concept.
+
+We are evolving:
+
+    "Search Interested"
+
+into:
+
+    "Search Relevant Opportunities"
+
+The important upgrade is:
+
+    OLD:
+
+        page → find "interested" → beep
+
+    NEW:
+
+        group
+          ↓
+        posts
+          ↓
+        post text
+          ↓
+        Regex relevance
+          ↓
+        timestamp
+          ↓
+        freshness
+          ↓
+        appropriate alert
+          ↓
+        human review
+
+
+============================================================
+19. IMPLEMENTATION REQUIREMENT
+============================================================
+
+After inspecting the project, implement the improvement in the
+smallest sensible set of changes.
+
+Prefer:
+
+    SearchInterested.py
+
+first.
+
+Do not create a large framework.
+
+Keep functions small and understandable.
+
+Use clear names.
+
+Add comments explaining WHY something is done, not merely WHAT
+the code does.
+
+At the end, provide:
+
+    1. What you changed
+    2. Why you changed it
+    3. Which existing functionality was preserved
+    4. Any XPath/timestamp assumptions
+    5. Any known limitations
+    6. How to test it

@@ -1,0 +1,54 @@
+# Facebook Opportunity Scanner
+## Architecture Blueprint
+
+> Purpose:
+> Upgrade the existing SearchInterested.py from a simple
+> "find interested" script into a configurable Facebook
+> opportunity/relevance scanner.
+>
+> The system will continue using Selenium + XPath/DOM.
+> No ML/AI/NLP is required.
+
+---
+
+# 1. EXISTING PROJECT STRUCTURE
+
+work_when_sleep_v_2/
+│
+├── DatabaseCreation/
+│
+├── DataCollection/
+│
+├── driver/
+│   ├── __init__.py
+│   ├── chromedriver.exe
+│   └── driver.py
+│
+├── experiment/
+│
+├── JoinGrups/
+│
+├── login/
+│
+├── Pages/
+│
+├── PersonalTouch/
+│   │
+│   ├── userdata/
+│   │
+│   ├── 99.deep_communication_8th.py
+│   ├── ai_message.py
+│   ├── BanglaStudent.txt
+│   ├── Blueprint.txt
+│   ├── CollectMemberFromComment.py
+│   ├── CommentReply.py
+│   ├── Facebook-Group-Navigation-Bot.py
+│   ├── Facebook-Post-comment-Like-Bot.py
+│   ├── groupList.txt
+│   ├── international_student_real_profile.txt
+│   ├── postList.txt
+│   └── SearchInterested.py
+│
+├── Preparation/
+│
+└── Tests/
