@@ -1,7 +1,6 @@
 import pathlib
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 
 
 chrome_options = Options()
@@ -22,8 +21,6 @@ chrome_options.add_argument(f"user-data-dir={scriptDirectory}\\userdata")
 
 class Driver:
     def __init__(self):
-        # service = Service(executable_path=r"C:\Users\user\PycharmProjects\AnandaMardChatBot\chromedriver.exe")
-        service = Service(executable_path=r"C:\Users\user\PycharmProjects\work_when_sleep_clooect_friends\driver\chromedriver.exe")
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        self.driver = webdriver.Chrome(options=chrome_options)
 
 # driver().driver.get("https://www.google.com/")
