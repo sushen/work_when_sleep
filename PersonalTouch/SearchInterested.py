@@ -28,17 +28,20 @@ except ImportError:
 SCRIPT_DIRECTORY = pathlib.Path(__file__).resolve().parent
 PROJECT_DIRECTORY = SCRIPT_DIRECTORY.parent
 GROUP_LIST_FILE = SCRIPT_DIRECTORY / "groupList.txt"
+RESULTS_FILE = SCRIPT_DIRECTORY / "search_results.txt"
 USER_DATA_DIRECTORY = SCRIPT_DIRECTORY / "userdata"
 CHROME_PROFILE_DIRECTORY = "Profile 8"
 CHROME_DRIVER_PATH = PROJECT_DIRECTORY / "driver" / "chromedriver.exe"
 
 FACEBOOK_HOME = "https://facebook.com"
 
+HEADLESS = False
 WAIT_SECONDS = 30
 LOGIN_WAIT_SECONDS = 8
 POST_WAIT_SECONDS = 25
 SCROLLS_PER_GROUP = 6
 SCROLL_PAUSE_SECONDS = 2
+GROUP_RETRY_PAUSE_SECONDS = 30
 
 VERY_RECENT_MAX_SECONDS = 60
 RECENT_MAX_SECONDS = 5 * 60
@@ -126,6 +129,8 @@ def create_chrome_options():
     chrome_options.add_argument(f"--user-data-dir={USER_DATA_DIRECTORY}")
     chrome_options.add_argument(f"--profile-directory={CHROME_PROFILE_DIRECTORY}")
     chrome_options.add_argument("--disable-infobars")
+    if HEADLESS:
+        chrome_options.add_argument("--headless=new")
     chrome_options.add_experimental_option(
         "prefs", {"profile.default_content_setting_values.notifications": 2}
     )
@@ -186,20 +191,91 @@ def login_if_needed(browser):
         input("[PAUSED] Log in manually in Chrome, then press Enter to continue: ")
 
 
-def load_group_urls():
+def read_group_queue_lines():
     try:
         with open(GROUP_LIST_FILE, encoding="utf-8") as file:
-            group_urls = [
-                line.strip()
-                for line in file
-                if line.strip() and not line.strip().startswith("#")
-            ]
+            return file.read().splitlines()
     except OSError as error:
         print(f"[ERROR] Could not read group list: {error}")
         return []
 
-    print(f"[START] Loaded {len(group_urls)} groups from {GROUP_LIST_FILE}")
+
+def is_group_queue_entry(line):
+    stripped_line = line.strip()
+    return bool(stripped_line) and not stripped_line.startswith("#")
+
+
+def load_group_urls(log=True):
+    group_urls = [
+        line.strip()
+        for line in read_group_queue_lines()
+        if is_group_queue_entry(line)
+    ]
+
+    if log:
+        print(f"[QUEUE] {len(group_urls)} groups loaded from {GROUP_LIST_FILE}")
+
     return group_urls
+
+
+def get_current_group(group_urls=None):
+    if group_urls is None:
+        group_urls = load_group_urls(log=False)
+
+    if not group_urls:
+        return None
+
+    return group_urls[0]
+
+
+def save_group_queue(queue_lines):
+    temp_file = GROUP_LIST_FILE.with_name(f"{GROUP_LIST_FILE.name}.tmp")
+
+    try:
+        text = "\n".join(queue_lines)
+        if text:
+            text += "\n"
+
+        with open(temp_file, "w", encoding="utf-8", newline="\n") as file:
+            file.write(text)
+            file.flush()
+            os.fsync(file.fileno())
+
+        os.replace(temp_file, GROUP_LIST_FILE)
+        return True
+    except OSError as error:
+        print(f"[ERROR] Could not update group queue: {error}")
+        return False
+
+
+def rotate_current_group(completed_group_url):
+    queue_lines = read_group_queue_lines()
+
+    for index, line in enumerate(queue_lines):
+        if not is_group_queue_entry(line):
+            continue
+
+        current_group = line.strip()
+        if current_group != completed_group_url:
+            print("[ERROR] Group queue changed before rotation.")
+            print(f"[QUEUE] Expected current group: {completed_group_url}")
+            print(f"[QUEUE] Actual current group: {current_group}")
+            return False
+
+        updated_queue = list(queue_lines)
+        updated_queue.pop(index)
+        updated_queue.append(current_group)
+
+        if save_group_queue(updated_queue):
+            print("[QUEUE] Current group moved to bottom")
+            print("[QUEUE] Appended to bottom:")
+            print(f"    {current_group}")
+            return True
+
+        return False
+
+    print("[ERROR] Could not rotate queue because it is empty.")
+    return False
 
 
 def page_start(browser):
@@ -493,6 +569,7 @@ def build_match_info(
     freshness_level = classify_freshness(post_age_seconds)
 
     return {
+        "detection_time": time.strftime("%Y-%m-%d %H:%M:%S"),
         "group_name": group_name,
         "group_url": group_url,
         "post_text": post_text,
@@ -502,6 +579,56 @@ def build_match_info(
         "post_age_seconds": post_age_seconds,
         "freshness_level": freshness_level,
     }
+
+
+def save_match(match_info):
+    appended_text = format_match_record(match_info)
+
+    try:
+        with open(RESULTS_FILE, "a", encoding="utf-8") as file:
+            file.write(appended_text)
+            file.flush()
+            os.fsync(file.fileno())
+
+        print(f"[SAVE] Saved to {RESULTS_FILE}")
+        print("[SAVE] Appended text:")
+        print(appended_text.rstrip())
+        return True
+    except OSError as error:
+        print(f"[ERROR] Could not save match: {error}")
+        return False
+
+
+def format_match_record(match_info):
+    separator = "=" * 50
+    matched_patterns = "\n".join(
+        f"    {pattern}" for pattern in match_info["matched_patterns"]
+    )
+
+    return (
+        f"{separator}\n"
+        "MATCH FOUND\n"
+        f"{separator}\n\n"
+        "Detected:\n"
+        f"{match_info['detection_time']}\n\n"
+        "Group:\n"
+        f"{match_info['group_name']}\n\n"
+        "Group URL:\n"
+        f"{match_info['group_url']}\n\n"
+        "Post URL:\n"
+        f"{match_info['post_url'] or 'UNKNOWN'}\n\n"
+        "Matched Patterns:\n"
+        f"{matched_patterns or '    UNKNOWN'}\n\n"
+        "Facebook Timestamp:\n"
+        f"{match_info['timestamp_raw'] or 'UNKNOWN'}\n\n"
+        "Post Age:\n"
+        f"{format_age(match_info['post_age_seconds'])}\n\n"
+        "Freshness:\n"
+        f"{match_info['freshness_level']}\n\n"
+        "Post Text:\n"
+        f"{match_info['post_text']}\n\n"
+        f"{separator}\n\n"
+    )
 
 
 def alert_user(freshness_level):
@@ -527,40 +654,14 @@ def alert_user(freshness_level):
 
 
 def display_match(match_info):
-    print("\n" + "=" * 42)
-    print("MATCH FOUND")
-    print("=" * 42)
-    print(f"Group: {match_info['group_name']}")
-    print(f"Group URL: {match_info['group_url']}")
-    print("Matched patterns:")
-    for pattern in match_info["matched_patterns"]:
-        print(f"  - {pattern}")
-
-    print(f"Timestamp raw: {match_info['timestamp_raw'] or 'UNKNOWN'}")
-    print(f"Post age: {format_age(match_info['post_age_seconds'])}")
-    print(f"Freshness: {match_info['freshness_level']}")
-    print(f"Post URL: {match_info['post_url'] or 'UNKNOWN'}")
-    print("\nPost text:")
-    print(limit_text(match_info["post_text"], MAX_POST_TEXT_DISPLAY_CHARS))
-    print("=" * 42)
-
-
-def pause_for_human_review():
-    try:
-        answer = input(
-            "[PAUSED] Review the post in Chrome. Press Enter to continue, "
-            "or type q to stop: "
-        )
-    except EOFError:
-        print("[CONTINUE] No interactive input was available.")
-        return True
-
-    if answer.strip().lower() in {"q", "quit", "exit", "stop"}:
-        print("[STOP] User stopped scanning.")
-        return False
-
-    print("[CONTINUE]")
-    return True
+    print("[MATCH] Relevant post found")
+    print(f"[MATCH] Group: {match_info['group_name']}")
+    print(f"[MATCH] Pattern: {', '.join(match_info['matched_patterns'])}")
+    print(f"[TIME] Post age: {format_age(match_info['post_age_seconds'])}")
+    print(f"[MATCH] Freshness: {match_info['freshness_level']}")
+    print(f"[MATCH] Post URL: {match_info['post_url'] or 'UNKNOWN'}")
+    print(f"[MATCH] Text: {first_line(match_info['post_text'])}")
+    print("[SCAN] Continuing...")
 
 
 def scan_loaded_posts(browser, group_name, group_url, seen_posts):
@@ -594,15 +695,9 @@ def scan_loaded_posts(browser, group_name, group_url, seen_posts):
                 timestamp_raw=timestamp_raw,
             )
 
-            print(f"[MATCH] {first_line(post_text)}")
-            print(f"[MATCH] Pattern: {', '.join(matched_patterns)}")
-            print(f"[TIME] Post age: {format_age(match_info['post_age_seconds'])}")
-
-            display_match(match_info)
+            save_match(match_info)
             alert_user(match_info["freshness_level"])
-
-            if not pause_for_human_review():
-                return False
+            display_match(match_info)
         except StaleElementReferenceException:
             print("[ERROR] Post became stale; skipping it.")
         except WebDriverException as error:
@@ -635,27 +730,66 @@ def scan_group(browser, group_url, group_index, group_count, seen_posts):
     return True
 
 
-def scan_groups(browser, group_urls, start_time):
+def run_continuous_scanner(browser, start_time):
     seen_posts = set()
-    group_count = len(group_urls)
+    group_index = 1
 
-    for group_index, group_url in enumerate(group_urls, start=1):
+    print("[START] Scanner started")
+
+    while True:
+        group_urls = load_group_urls()
+        current_group = get_current_group(group_urls)
+
+        if not current_group:
+            print("[END] No groups to scan.")
+            break
+
+        group_count = len(group_urls)
+        if group_index > group_count:
+            group_index = 1
+
+        success = False
+        rotated = False
+
         try:
-            keep_scanning = scan_group(
+            success = scan_group(
                 browser=browser,
-                group_url=group_url,
+                group_url=current_group,
                 group_index=group_index,
                 group_count=group_count,
                 seen_posts=seen_posts,
             )
-            if not keep_scanning:
-                break
         except TimeoutException as error:
             print(f"[ERROR] Could not load group posts: {short_error(error)}")
         except WebDriverException as error:
             print(f"[ERROR] Could not load group: {short_error(error)}")
 
+        if success:
+            rotated = rotate_current_group(current_group)
+            if rotated:
+                next_group = get_current_group()
+                if next_group:
+                    print("[QUEUE] Next group:")
+                    print(f"    {next_group}")
+            else:
+                print("[QUEUE] Current group was not rotated; it remains first.")
+        else:
+            print("[GROUP] Scan failed; moving current group to bottom.")
+            rotated = rotate_current_group(current_group)
+            if rotated:
+                next_group = get_current_group()
+                if next_group:
+                    print("[QUEUE] Next group:")
+                    print(f"    {next_group}")
+            else:
+                print("[QUEUE] Current group was not rotated; it remains first.")
+            print(f"[WAIT] Continuing after {GROUP_RETRY_PAUSE_SECONDS} seconds.")
+            time.sleep(GROUP_RETRY_PAUSE_SECONDS)
+
         print_running_time(start_time)
+        print("[SCAN] Continuing...")
+        if rotated:
+            group_index = (group_index % group_count) + 1
 
 
 def get_group_name(browser, group_url):
@@ -721,12 +855,10 @@ def main():
     browser = create_driver()
     login_if_needed(browser)
 
-    group_urls = load_group_urls()
-    if not group_urls:
-        print("[END] No groups to scan.")
-        return
-
-    scan_groups(browser, group_urls, start_time)
+    try:
+        run_continuous_scanner(browser, start_time)
+    except KeyboardInterrupt:
+        print("\n[STOP] Scanner stopped by user.")
 
     end_time = time.time()
     print("\n[END] This script ended " + time.ctime())
