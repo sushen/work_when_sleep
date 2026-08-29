@@ -1,0 +1,1196 @@
+You are modifying an existing Python project.
+
+PROJECT:
+    work_when_sleep_v_2/
+
+MAIN FILE:
+    PersonalTouch/SearchInterested.py
+
+IMPORTANT:
+    Do NOT redesign the entire project.
+    Do NOT replace Selenium.
+    Do NOT use ML, AI, NLP, or external AI APIs.
+    Do NOT create a database yet.
+
+First inspect the existing project and the current
+PersonalTouch/SearchInterested.py implementation.
+
+The current script is already approximately 740 lines and
+already contains:
+
+    - Selenium WebDriver
+    - Chrome profile/userdata
+    - Facebook login/session handling
+    - groupList.txt processing
+    - Facebook post detection
+    - XPath-based extraction
+    - Regular Expression matching
+    - timestamp extraction
+    - freshness classification
+    - duplicate detection
+    - notifier.beep()
+    - running-time logging
+
+Preserve anything that is already working.
+
+============================================================
+PRIMARY OBJECTIVE
+============================================================
+
+Turn SearchInterested.py into a CONTINUOUS FACEBOOK
+OPPORTUNITY SCANNER.
+
+The scanner should:
+
+    1. Open Facebook groups from groupList.txt
+    2. Detect individual posts
+    3. Extract post text
+    4. Search the post using Regex patterns
+    5. Extract the post timestamp
+    6. Calculate how old the post is
+    7. Determine freshness
+    8. Save relevant posts to a text file
+    9. Make an audible alert
+   10. CONTINUE SCANNING
+   11. Never stop because a match was found
+   12. Continue through the group queue
+   13. Remember where it stopped between program runs
+
+The scanner is a detection system.
+
+The human reviews the detected posts separately.
+
+============================================================
+CRITICAL CHANGE #1
+MATCH MUST NEVER STOP THE SCANNER
+============================================================
+
+The current behavior is conceptually:
+
+    MATCH
+       ↓
+    DISPLAY
+       ↓
+    BEEP
+       ↓
+    PAUSE FOR HUMAN
+       ↓
+    WAIT
+
+This is WRONG for the new architecture.
+
+Remove the human-review pause from the match workflow.
+
+Do NOT call input() after a match.
+
+Do NOT wait for the user.
+
+Do NOT stop scanning.
+
+The new behavior must be:
+
+    MATCH
+       ↓
+    CREATE MATCH OBJECT
+       ↓
+    SAVE TO TEXT FILE
+       ↓
+    PLAY SOUND
+       ↓
+    DISPLAY SHORT LOG
+       ↓
+    CONTINUE SCANNING
+
+The scanner must remain autonomous.
+
+============================================================
+CRITICAL CHANGE #2
+SAVE EVERY MATCH
+============================================================
+
+Create/use a persistent text file:
+
+    PersonalTouch/search_results.txt
+
+The file must be append-only.
+
+Never overwrite previous results.
+
+Every relevant post should be recorded.
+
+Each result should contain:
+
+    Detection time
+    Group name
+    Group URL
+    Post URL
+    Matched Regex pattern(s)
+    Facebook timestamp
+    Calculated post age
+    Freshness level
+    Post text
+
+Example:
+
+    ==================================================
+    MATCH FOUND
+    ==================================================
+
+    Detected:
+    2026-08-29 10:15:23
+
+    Group:
+    Example Group
+
+    Group URL:
+    https://facebook.com/groups/example
+
+    Post URL:
+    https://facebook.com/...
+
+    Matched Patterns:
+        \blooking\s+for\b
+        \bdeveloper\b
+
+    Facebook Timestamp:
+    45s
+
+    Post Age:
+    45 seconds
+
+    Freshness:
+    VERY_RECENT
+
+    Post Text:
+    Looking for a developer to build my website.
+
+    ==================================================
+
+Use UTF-8.
+
+Open the file in append mode.
+
+Create a dedicated function:
+
+    save_match(match_info)
+
+The function must not destroy previous results.
+
+Write/flush the result immediately where practical.
+
+If saving fails:
+
+    log the error
+
+but do not unnecessarily terminate the entire scanner.
+
+============================================================
+CRITICAL CHANGE #3
+CONTINUOUS GROUP SCANNING
+============================================================
+
+There are approximately 90+ Facebook groups.
+
+The scanner must not simply process the list once and terminate.
+
+It should continuously cycle through the groups.
+
+Desired behavior:
+
+    GROUP A
+       ↓
+    GROUP B
+       ↓
+    GROUP C
+       ↓
+    ...
+       ↓
+    GROUP 92
+       ↓
+    GROUP A
+       ↓
+    GROUP B
+       ↓
+    ...
+
+The scanner should continue until the user manually terminates
+the program.
+
+============================================================
+CRITICAL CHANGE #4
+GROUP LIST IS A PERSISTENT QUEUE
+============================================================
+
+Use:
+
+    PersonalTouch/groupList.txt
+
+as a persistent rotating queue.
+
+Example initial file:
+
+    A
+    B
+    C
+    D
+    E
+
+After successfully completing A:
+
+    B
+    C
+    D
+    E
+    A
+
+After successfully completing B:
+
+    C
+    D
+    E
+    A
+    B
+
+This is important because the user may stop the scanner at any time.
+
+============================================================
+CRITICAL CHANGE #5
+RESUME FROM WHERE THE SCANNER STOPPED
+============================================================
+
+Example:
+
+Initial:
+
+    A
+    B
+    C
+    D
+    E
+
+Scanner completes:
+
+    A
+    B
+    C
+
+The file should become:
+
+    D
+    E
+    A
+    B
+    C
+
+If the user stops the program while scanning D:
+
+    D
+    E
+    A
+    B
+    C
+
+must remain unchanged.
+
+When the program starts again:
+
+    D
+
+must be the first group scanned.
+
+Do NOT restart from A.
+
+============================================================
+CRITICAL CHANGE #6
+ONLY ROTATE A GROUP AFTER SUCCESS
+============================================================
+
+This is extremely important.
+
+DO NOT move the current group to the bottom immediately.
+
+Only rotate it after the group scan has completed successfully.
+
+Example:
+
+    Current queue:
+
+        A
+        B
+        C
+
+If A succeeds:
+
+        B
+        C
+        A
+
+If A fails:
+
+        A
+        B
+        C
+
+Therefore:
+
+    SUCCESS → move first line to bottom
+
+    FAILURE → leave first line where it is
+
+This gives the program reliable resume behavior.
+
+============================================================
+CRITICAL CHANGE #7
+SAFE GROUP QUEUE UPDATE
+============================================================
+
+When updating groupList.txt:
+
+    1. Read the queue
+    2. Remove the first group
+    3. Append that group to the bottom
+    4. Write the updated queue safely
+
+Prefer a temporary file followed by replacement of the original
+file so that an interruption during writing does not corrupt
+groupList.txt.
+
+Do not create a separate progress database.
+
+The queue itself is the checkpoint.
+
+============================================================
+REGEX RELEVANCE ENGINE
+============================================================
+
+Keep Regular Expressions.
+
+Do NOT use:
+
+    ML
+    AI
+    NLP
+    embeddings
+    external APIs
+
+The scanner should determine relevance using configurable Regex.
+
+Initial patterns can include:
+
+    r"\binterested\b"
+    r"\blooking\s+for\b"
+    r"\bneed(?:s|ed|ing)?\b"
+    r"\bwants?\b"
+    r"\bhiring\b"
+    r"\bhire\b"
+    r"\bfreelanc(?:e|er|ing)\b"
+    r"\bdeveloper\b"
+    r"\bdesigner\b"
+    r"\bwebsite\b"
+
+These are only initial examples.
+
+Keep the Regex system easy to extend.
+
+Use:
+
+    re.IGNORECASE
+
+Compile the patterns once.
+
+A post may match multiple patterns.
+
+However:
+
+    ONE POST = ONE ALERT
+
+Do not beep once per matching pattern.
+
+============================================================
+POST-LEVEL DETECTION
+============================================================
+
+Do not search the entire Facebook page for "interested".
+
+Process individual post containers.
+
+Conceptually:
+
+    Facebook page
+        ↓
+    Find post containers
+        ↓
+    For each post
+        ↓
+    Extract post text
+        ↓
+    Run Regex
+        ↓
+    If matched:
+        continue processing the post
+
+Keep Facebook XPath selectors in centralized constants/functions
+where practical because Facebook's DOM can change.
+
+Use Selenium + XPath/DOM.
+
+Do not use image recognition.
+
+Do not use OCR.
+
+============================================================
+POST INFORMATION
+============================================================
+
+For each post attempt to obtain:
+
+    post_text
+    post_url
+    timestamp
+
+Only posts that match Regex need to become full match records.
+
+Conceptually:
+
+    post_text = extract_post_text(post)
+
+    if not post_text:
+        continue
+
+    matched_patterns = find_matching_patterns(post_text)
+
+    if not matched_patterns:
+        continue
+
+    post_url = extract_post_url(post)
+
+    timestamp_raw = extract_post_timestamp(post)
+
+    ...
+    
+============================================================
+TIMESTAMP ENGINE
+============================================================
+
+Keep the existing timestamp extraction/parsing architecture.
+
+Support Facebook-style relative times such as:
+
+    now
+    just now
+    10s
+    45s
+    1m
+    3m
+    5m
+    1h
+    2h
+    1d
+    2d
+    1w
+
+Convert them into seconds.
+
+Examples:
+
+    45s → 45
+
+    2m → 120
+
+    1h → 3600
+
+    1d → 86400
+
+If the timestamp cannot be determined:
+
+    return None
+
+NEVER invent a timestamp.
+
+============================================================
+FRESHNESS
+============================================================
+
+Keep freshness separate from relevance.
+
+Use:
+
+    <= 60 seconds
+        VERY_RECENT
+
+    > 60 seconds and <= 5 minutes
+        RECENT
+
+    > 5 minutes
+        NORMAL
+
+Unknown:
+
+    UNKNOWN
+
+Keep the thresholds configurable.
+
+============================================================
+ALERT SYSTEM
+============================================================
+
+Keep the notifier architecture:
+
+    notifier.beep()
+
+or the existing compatible import.
+
+Do not unnecessarily move sound logic into SearchInterested.py.
+
+Alert behavior:
+
+    VERY_RECENT
+        → DOUBLE BEEP
+
+    RECENT
+        → SINGLE BEEP
+
+    NORMAL
+        → SINGLE BEEP if enabled
+
+    UNKNOWN
+        → SINGLE BEEP if enabled
+
+For VERY_RECENT:
+
+    beep()
+    short delay
+    beep()
+
+The sound must NOT pause the scanner.
+
+Do not call input().
+
+Do not wait for human confirmation.
+
+============================================================
+IMPORTANT SOUND REQUIREMENT
+============================================================
+
+The sound is only a notification.
+
+The workflow must be:
+
+    MATCH
+      ↓
+    SAVE
+      ↓
+    SOUND
+      ↓
+    CONTINUE
+
+The scanner must not stop.
+
+============================================================
+DUPLICATE DETECTION
+============================================================
+
+Keep the existing duplicate protection.
+
+Facebook can expose the same post multiple times while scrolling.
+
+The same post should not produce:
+
+    duplicate result entries
+    duplicate alerts
+
+Prefer:
+
+    post URL
+
+as the primary unique identifier.
+
+If a URL is unavailable, use the existing fallback key.
+
+Maintain:
+
+    seen_posts = set()
+
+One post should produce at most one alert during the current
+scanner process.
+
+============================================================
+SCROLLING
+============================================================
+
+Keep the existing scrolling concept.
+
+Do NOT optimize aggressively for speed.
+
+The goal is:
+
+    stable
+    reliable
+    continuous
+
+The existing scrolling/wait behavior is acceptable unless there
+is a concrete bug.
+
+Do not remove the waiting simply to make the scanner faster.
+
+Use explicit Selenium waits where useful.
+
+============================================================
+HUMAN-LIKE OPERATION
+============================================================
+
+Speed is NOT the primary objective.
+
+Priority:
+
+    1. Reliability
+    2. Correct post detection
+    3. Correct text extraction
+    4. Correct Regex matching
+    5. Correct timestamp extraction
+    6. Correct result saving
+    7. Correct duplicate handling
+    8. Continuous scanning
+    9. Alerting
+   10. Performance
+
+Do not attempt to bypass Facebook security or anti-automation
+systems.
+
+============================================================
+HEADLESS MODE
+============================================================
+
+Do NOT make headless mode the first change.
+
+Keep Chrome visible while debugging.
+
+However, structure create_chrome_options() so headless mode can
+be enabled later through one configuration setting.
+
+For example:
+
+    HEADLESS = False
+
+Later:
+
+    HEADLESS = True
+
+Do not remove the ability to run visibly.
+
+============================================================
+ERROR HANDLING
+============================================================
+
+Do not use:
+
+    except:
+        pass
+
+for important operations.
+
+Use explicit Selenium exceptions where appropriate.
+
+If a post becomes stale:
+
+    log it
+    skip the post
+    continue
+
+If one post fails:
+
+    continue with the next post
+
+If a group fails:
+
+    do NOT mark it as completed
+
+The failed group should remain at the top of groupList.txt.
+
+Avoid infinite tight retry loops.
+
+Use reasonable waiting/backoff if a group repeatedly fails.
+
+============================================================
+LOGGING
+============================================================
+
+Console output should clearly show continuous operation.
+
+Example:
+
+    [START] Scanner started
+    [QUEUE] 92 groups loaded
+
+    [GROUP 1] Opening:
+        Example Group
+
+    [SCAN] 18 posts detected
+
+    [MATCH] Relevant post found
+    [MATCH] Pattern: looking for
+    [TIME] Post age: 42 seconds
+    [SAVE] Saved to search_results.txt
+    [ALERT] VERY_RECENT -> DOUBLE BEEP
+    [SCAN] Continuing...
+
+    [GROUP] Scan completed successfully
+    [QUEUE] Current group moved to bottom
+
+    [QUEUE] Next group:
+        Another Group
+
+    [SCAN] Continuing...
+
+The scanner should make it obvious that it has NOT stopped after
+a match.
+
+============================================================
+MATCH OBJECT
+============================================================
+
+Use a structure similar to:
+
+    {
+        "detection_time": "...",
+
+        "group_name": "...",
+        "group_url": "...",
+
+        "post_text": "...",
+        "post_url": "...",
+
+        "matched_patterns": [...],
+
+        "timestamp_raw": "...",
+        "post_age_seconds": 45,
+
+        "freshness_level": "VERY_RECENT"
+    }
+
+This structure should later be easy to insert into a database.
+
+============================================================
+FUTURE DATABASE
+============================================================
+
+Do NOT create the database now.
+
+The text file is temporary persistence.
+
+Design:
+
+    save_match(match_info)
+
+so that later it can become:
+
+    save_match_to_database(match_info)
+
+without changing the scanning architecture.
+
+The future database should not require rewriting:
+
+    post detection
+    Regex engine
+    timestamp engine
+    freshness engine
+    alert engine
+    group scanning
+
+============================================================
+GROUP QUEUE FUNCTIONS
+============================================================
+
+Use functions with responsibilities approximately like:
+
+    load_group_urls()
+
+    save_group_queue()
+
+    rotate_current_group()
+
+    get_current_group()
+
+The exact names can differ.
+
+The important behavior is:
+
+    FIRST GROUP = CURRENT WORK ITEM
+
+    SUCCESS:
+        move first group to bottom
+
+    FAILURE:
+        leave first group at top
+
+============================================================
+CONTINUOUS SCANNER
+============================================================
+
+The final architecture should be approximately:
+
+    def run_continuous_scanner(browser):
+
+        while True:
+
+            group_urls = load_group_urls()
+
+            if not group_urls:
+                log(...)
+                break
+
+            current_group = group_urls[0]
+
+            success = scan_group(
+                browser,
+                current_group
+            )
+
+            if success:
+                rotate_current_group()
+            else:
+                log(...)
+                # DO NOT rotate the group
+
+                # use reasonable retry/backoff
+
+============================================================
+POST MATCH FLOW
+============================================================
+
+The final match flow should be approximately:
+
+    post_text = extract_post_text(post)
+
+    if not post_text:
+        continue
+
+    matched_patterns = find_matching_patterns(post_text)
+
+    if not matched_patterns:
+        continue
+
+    post_url = extract_post_url(post)
+
+    timestamp_raw = extract_post_timestamp(post)
+
+    post_key = build_post_key(
+        group_url,
+        post_url,
+        post_text,
+        timestamp_raw
+    )
+
+    if post_key in seen_posts:
+        continue
+
+    seen_posts.add(post_key)
+
+    match_info = build_match_info(...)
+
+    save_match(match_info)
+
+    display_match(match_info)
+
+    alert_user(
+        match_info["freshness_level"]
+    )
+
+    # NO pause
+    # NO input()
+    # NO human confirmation
+    # NO return False
+
+    continue
+
+============================================================
+MAIN LOOP BEHAVIOR
+============================================================
+
+The complete system should behave like:
+
+    START
+      ↓
+    Selenium
+      ↓
+    Facebook
+      ↓
+    Load group queue
+      ↓
+    Take first group
+      ↓
+    Scan group
+      ↓
+    Detect posts
+      ↓
+    Extract text
+      ↓
+    Regex
+      ↓
+    Match?
+      │
+      ├── NO
+      │    ↓
+      │  continue
+      │
+      └── YES
+           ↓
+       Extract timestamp
+           ↓
+       Calculate freshness
+           ↓
+       Save result
+           ↓
+       Beep
+           ↓
+       CONTINUE
+           ↓
+       More posts
+           ↓
+       Scroll
+           ↓
+       More posts
+           ↓
+       Group complete
+           ↓
+       Move group to bottom
+           ↓
+       Next group
+           ↓
+       Repeat forever
+
+
+============================================================
+TWO PERSISTENT FILE RESPONSIBILITIES
+============================================================
+
+There are two separate systems.
+
+1. GROUP QUEUE
+
+    PersonalTouch/groupList.txt
+
+Purpose:
+
+    Remember WHERE the scanner should continue.
+
+2. MATCH LOG
+
+    PersonalTouch/search_results.txt
+
+Purpose:
+
+    Remember WHAT the scanner found.
+
+Do not mix these responsibilities.
+
+============================================================
+ACCEPTANCE TESTS
+============================================================
+
+TEST 1:
+
+Post contains:
+
+    "I am interested in a developer."
+
+Expected:
+
+    Regex match
+    result saved
+    beep
+    scanner continues
+
+------------------------------------------------------------
+
+TEST 2:
+
+Post contains:
+
+    "Looking for a website developer."
+
+Expected:
+
+    Regex match
+    matched pattern shown
+    result saved
+    scanner continues
+
+------------------------------------------------------------
+
+TEST 3:
+
+Matching post is 30 seconds old.
+
+Expected:
+
+    VERY_RECENT
+    DOUBLE BEEP
+    result saved
+    scanner continues
+
+------------------------------------------------------------
+
+TEST 4:
+
+Matching post is 3 minutes old.
+
+Expected:
+
+    RECENT
+    SINGLE BEEP
+    result saved
+    scanner continues
+
+------------------------------------------------------------
+
+TEST 5:
+
+Same post appears again after scrolling.
+
+Expected:
+
+    no duplicate result
+    no duplicate alert
+
+------------------------------------------------------------
+
+TEST 6:
+
+groupList.txt:
+
+    A
+    B
+    C
+
+After successful A:
+
+    B
+    C
+    A
+
+------------------------------------------------------------
+
+TEST 7:
+
+A fails during scanning.
+
+Expected:
+
+    A
+    B
+    C
+
+A remains first.
+
+------------------------------------------------------------
+
+TEST 8:
+
+A and B complete.
+Program is stopped while C is current.
+
+Expected:
+
+    C
+    A
+    B
+
+On restart:
+
+    C is scanned first.
+
+------------------------------------------------------------
+
+TEST 9:
+
+A match occurs.
+
+Expected:
+
+    save result
+    beep
+    scanner continues automatically
+
+There must be NO:
+
+    input()
+    pause_for_human_review()
+    stop
+    return False
+
+caused by the match.
+
+------------------------------------------------------------
+
+TEST 10:
+
+Scanner completes all groups.
+
+Expected:
+
+    it starts again from the first group in the rotated queue.
+
+Example:
+
+    A
+    B
+    C
+
+After one complete cycle:
+
+    A
+    B
+    C
+
+The scanner continues indefinitely.
+
+============================================================
+IMPORTANT DEVELOPMENT PROCESS
+============================================================
+
+Before editing:
+
+    1. Inspect SearchInterested.py completely.
+    2. Inspect the existing notifier implementation.
+    3. Inspect driver/driver.py if relevant.
+    4. Understand the current Selenium/profile setup.
+    5. Preserve working components.
+    6. Then modify the code.
+
+Do NOT blindly rewrite the entire project.
+
+Do NOT delete existing functionality without a reason.
+
+Do NOT introduce unnecessary files.
+
+============================================================
+FINAL REQUIREMENT
+============================================================
+
+After making the changes, explain:
+
+    1. What was changed.
+    2. What was preserved.
+    3. How match handling changed.
+    4. How search_results.txt works.
+    5. How groupList.txt now works as a queue.
+    6. How restart/resume works.
+    7. How duplicate detection works.
+    8. How timestamp/freshness works.
+    9. How the alert works.
+   10. How continuous scanning works.
+   11. Any remaining limitations.
+
+Do not claim something was tested unless it was actually tested.
+
+The most important final behavior is:
+
+    FIND → SAVE → ALERT → CONTINUE
+
+and:
+
+    CURRENT GROUP → SUCCESS → MOVE TO BOTTOM
+
+The scanner should behave as a continuous opportunity radar,
+not as a script that stops whenever it finds something.
