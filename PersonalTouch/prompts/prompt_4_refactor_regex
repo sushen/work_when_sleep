@@ -1,0 +1,248 @@
+I want to refactor my existing Python project, but I want to do it ONE STEP AT A TIME.
+
+IMPORTANT:
+Do NOT rewrite the whole project.
+Do NOT change the existing functionality.
+Do NOT redesign the architecture all at once.
+Do NOT touch modules that are already properly modular.
+
+The current file is:
+
+SearchInterested(3).py
+
+The project already has a modular driver/settings structure.
+The driver is located in its own folder and is already separated from this script.
+
+DO NOT refactor, move, recreate, or modify the existing driver/settings system unless absolutely required for an import.
+
+Our first goal is ONLY to split the REGEX/SIGNAL code out of SearchInterested(3).py.
+
+==================================================
+STEP 1 — SPLIT REGEX/SIGNAL LOGIC
+==================================================
+
+Create a separate module:
+
+signals.py
+
+Move ONLY the following into it:
+
+1. All regex pattern definitions:
+   - INTENT_SIGNAL_PATTERNS
+   - SERVICE_SIGNAL_PATTERNS
+   - PROBLEM_SIGNAL_PATTERNS
+   - COMMERCIAL_SIGNAL_PATTERNS
+   - URGENCY_SIGNAL_PATTERNS
+   - NEGATIVE_SIGNAL_PATTERNS
+   - INTERESTED_SIGNAL_PATTERNS
+
+2. All corresponding compiled regex definitions:
+   - COMPILED_INTENT_SIGNAL_PATTERNS
+   - COMPILED_SERVICE_SIGNAL_PATTERNS
+   - COMPILED_PROBLEM_SIGNAL_PATTERNS
+   - COMPILED_COMMERCIAL_SIGNAL_PATTERNS
+   - COMPILED_URGENCY_SIGNAL_PATTERNS
+   - COMPILED_NEGATIVE_SIGNAL_PATTERNS
+   - COMPILED_INTERESTED_SIGNAL_PATTERNS
+
+3. Signal matching functions:
+   - find_weighted_signals()
+   - find_intent_signals()
+   - find_service_signals()
+   - find_problem_signals()
+   - find_commercial_signals()
+   - find_urgency_signals()
+   - find_negative_signals()
+   - find_interested_signals()
+
+The current regex patterns and weights must be copied EXACTLY.
+
+Do not improve them.
+Do not add patterns.
+Do not remove patterns.
+Do not change weights.
+Do not change regex behavior.
+
+==================================================
+KEEP SCORING SEPARATE
+==================================================
+
+Do NOT move the opportunity scoring logic into signals.py.
+
+Keep these concepts separate:
+
+SIGNALS
+    ↓
+SCORING
+    ↓
+CLASSIFICATION
+
+The signal module's responsibility is only:
+
+"What signals exist in this text?"
+
+The scoring logic's responsibility remains:
+
+"How valuable are those signals?"
+
+Therefore, functions such as:
+
+- analyze_opportunity()
+- calculate_opportunity_score()
+- classify_opportunity()
+- has_strong_intent()
+- has_obvious_provider_context()
+
+should remain where they currently are for this first step.
+
+==================================================
+UPDATE IMPORTS
+==================================================
+
+After creating signals.py, update SearchInterested(3).py so it imports the signal functions from the new module.
+
+For example:
+
+from signals import (
+    find_intent_signals,
+    find_service_signals,
+    find_problem_signals,
+    find_commercial_signals,
+    find_urgency_signals,
+    find_negative_signals,
+    find_interested_signals,
+)
+
+Remove the duplicated regex definitions from SearchInterested(3).py.
+
+Do not leave two copies of the regex definitions.
+
+==================================================
+DO NOT TOUCH THESE YET
+==================================================
+
+Leave all of the following untouched for now:
+
+- Chrome driver
+- driver settings
+- Facebook login
+- Selenium navigation
+- group queue
+- inactive groups
+- group rotation
+- retry logic
+- scrolling
+- post extraction
+- comment extraction
+- author extraction
+- URL extraction
+- timestamp parsing
+- opportunity storage
+- duplicate detection
+- result formatting
+- beep/alerts
+- main scanner loop
+
+We will split those into separate modules later, one at a time.
+
+==================================================
+BEHAVIOR MUST REMAIN IDENTICAL
+==================================================
+
+This is an architectural refactor, NOT a feature change.
+
+Before considering the step complete, verify:
+
+- Every regex pattern still exists.
+- Every weight is unchanged.
+- Every signal category still works.
+- The compiled regex behavior is unchanged.
+- analyze_opportunity() still receives the same signal information.
+- Opportunity scores remain identical.
+- Opportunity quality remains identical.
+- STRONG/POSSIBLE/WEAK classification remains identical.
+- Selenium scanning behavior remains unchanged.
+
+==================================================
+CODE SPLITTING PRINCIPLE
+==================================================
+
+Use simple Python modules.
+
+Do not introduce unnecessary:
+
+- classes
+- frameworks
+- dependency injection
+- configuration systems
+- databases
+- async code
+- external packages
+- AI/LLM classification
+
+Keep the new module clean and easy to understand.
+
+==================================================
+WORKFLOW
+==================================================
+
+Before editing:
+
+1. Inspect the complete SearchInterested(3).py.
+2. Identify exactly which code belongs to the signal/regex module.
+3. Confirm that the existing driver architecture is already modular.
+4. Explain what you are going to move.
+
+Then:
+
+5. Create signals.py.
+6. Move the regex/signal code.
+7. Update imports.
+8. Remove the old duplicated code.
+9. Check for broken references/imports.
+10. Verify behavior.
+
+IMPORTANT:
+
+Do NOT proceed to the next refactoring step after this.
+
+STOP after completing and verifying STEP 1.
+
+Wait for my instruction before splitting anything else.
+
+==================================================
+FUTURE REFACTORING — DO NOT EXECUTE YET
+==================================================
+
+After Step 1 is verified, we will continue approximately like this:
+
+STEP 2:
+timestamp.py
+
+STEP 3:
+content_extractor.py
+
+STEP 4:
+opportunity.py / scoring.py
+
+STEP 5:
+storage.py
+
+STEP 6:
+group_queue.py
+
+STEP 7:
+scanner.py
+
+STEP 8:
+final cleanup and testing
+
+Again:
+
+ONLY EXECUTE STEP 1 NOW.
+
+The priority is:
+
+SAFE → SMALL CHANGE → VERIFY → NEXT STEP.
+
+Never make a large refactor in a single operation.

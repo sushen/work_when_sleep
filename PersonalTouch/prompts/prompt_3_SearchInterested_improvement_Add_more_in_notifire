@@ -1,0 +1,1490 @@
+You are modifying an existing Python project.
+
+PROJECT:
+    work_when_sleep_v_2/
+
+PRIMARY FILE:
+    PersonalTouch/SearchInterested.py
+
+IMPORTANT:
+    This is an existing working project.
+    Do NOT rewrite the project from scratch.
+    Do NOT replace Selenium.
+    Do NOT introduce ML/AI/NLP.
+    Do NOT create a database yet.
+    Do NOT focus on discovering new Facebook groups at this stage.
+
+The current objective is:
+
+    FIND REAL, RECENT BUSINESS/WORK OPPORTUNITIES
+    INSIDE THE ACTIVE FACEBOOK GROUPS WE ALREADY HAVE.
+
+The scanner should become a continuous opportunity radar.
+
+============================================================
+1. CURRENT PROBLEM
+============================================================
+
+The existing scanner can detect posts and Regex matches, but
+the current matching is too shallow.
+
+Examples from actual collected output show false positives:
+
+    "you need to..."
+    "according to your need"
+    "calculations needed"
+    "I am a developer"
+    "your website is not responsive"
+    "do you want to compile..."
+
+These contain our keywords but are NOT necessarily opportunities.
+
+Therefore:
+
+    KEYWORD MATCH != OPPORTUNITY
+
+We need a rule-based opportunity detection engine using:
+
+    Regex
+    context
+    combinations of signals
+    negative patterns
+    freshness
+    group activity
+
+No ML is required.
+
+============================================================
+2. PRIMARY STRATEGY
+============================================================
+
+Do NOT search for more groups yet.
+
+We already have a large group list.
+
+First determine:
+
+    Which existing groups are active?
+
+Then concentrate scanning effort on those groups.
+
+The system should prioritize:
+
+    ACTIVE GROUP
+        ↓
+    RECENT POSTS
+        ↓
+    OPPORTUNITY DETECTION
+        ↓
+    FRESHNESS
+        ↓
+    ALERT + SAVE
+
+Inactive groups should eventually be moved to:
+
+    PersonalTouch/inactive_groups.txt
+
+while active groups remain in:
+
+    PersonalTouch/groupList.txt
+
+============================================================
+3. ACTIVE VS INACTIVE GROUPS
+============================================================
+
+We have approximately 90+ groups.
+
+Some groups may be effectively dead:
+
+    no recent posts
+    very few posts
+    only old posts
+    no meaningful activity
+
+There is no value in spending most of the scanner's time analyzing
+old content from inactive groups.
+
+Create two logical categories:
+
+    HOT / ACTIVE GROUPS
+        PersonalTouch/groupList.txt
+
+    COLD / INACTIVE GROUPS
+        PersonalTouch/inactive_groups.txt
+
+Do NOT permanently delete inactive groups.
+
+Move them to the inactive file so they can potentially be
+re-evaluated later.
+
+============================================================
+4. GROUP ACTIVITY DETECTION
+============================================================
+
+Before doing deep opportunity analysis, determine whether a group
+has meaningful recent activity.
+
+The system should inspect the available recent posts and determine:
+
+    latest post age
+    number of recent posts
+    whether the group has meaningful activity
+
+The exact activity threshold should be configurable.
+
+For example:
+
+    ACTIVE:
+        at least one meaningful post within the last 6 days
+
+    INACTIVE:
+        no meaningful recent posts within the last 6 days
+
+Do not make this dependent on the word "interested".
+
+A group is active because PEOPLE ARE POSTING,
+not because our Regex found something.
+
+============================================================
+5. IMPORTANT: SIX-DAY CUTOFF
+============================================================
+
+The scanner should NOT treat posts older than 6 days as
+opportunities.
+
+Freshness levels:
+
+    0 - 60 seconds
+        VERY_RECENT
+        → THREE BEEPS
+
+    > 60 seconds - 24 hours
+        RECENT
+        → TWO BEEPS
+
+    > 24 hours - 6 days
+        OLDER_BUT_RELEVANT
+        → ONE BEEP
+
+    > 6 days
+        IGNORE
+
+    UNKNOWN
+        DO NOT treat as fresh
+        DO NOT give a false freshness alert
+
+The six-day limit is a HARD OPPORTUNITY CUTOFF.
+
+============================================================
+6. BEEP MEANING
+============================================================
+
+The number of beeps represents opportunity freshness.
+
+    3 BEEPS
+        post/comment is within 1 minute
+        VERY_RECENT
+
+    2 BEEPS
+        within 24 hours
+        RECENT
+
+    1 BEEP
+        within 6 days
+        OLDER_BUT_RELEVANT
+
+    0 BEEPS
+        older than 6 days
+        ignore
+
+This is intentionally simple.
+
+The user should immediately understand:
+
+    3 = extremely fresh
+    2 = fresh
+    1 = still worth checking
+
+============================================================
+7. FIX TIMESTAMP LOGIC FIRST
+============================================================
+
+The current output has serious timestamp inconsistencies.
+
+Example:
+
+    Facebook Timestamp:
+        April 1, 2026
+
+    Post Age:
+        1 minute
+
+    Freshness:
+        VERY_RECENT
+
+This is impossible.
+
+Do NOT trust the current freshness result until the timestamp
+extraction/parsing logic is verified.
+
+The system must distinguish between:
+
+    actual Facebook timestamp
+    relative timestamp
+    post display age
+    comment timestamp
+    unrelated timestamps appearing elsewhere in the DOM
+
+Never use an unrelated date from the page.
+
+If timestamp confidence is low:
+
+    freshness = UNKNOWN
+
+Do not falsely classify it as VERY_RECENT.
+
+============================================================
+8. POST TIMESTAMP VS COMMENT TIMESTAMP
+============================================================
+
+This is extremely important.
+
+A Facebook post may contain:
+
+    original post timestamp
+    comments
+    comment timestamps
+    edited information
+    other dates
+
+The scanner must identify which timestamp belongs to the
+CONTENT being evaluated.
+
+At minimum, distinguish:
+
+    POST
+    COMMENT
+
+If the opportunity is in the original post:
+
+    use post timestamp
+
+If later we decide to scan comments as opportunities:
+
+    use the comment timestamp
+
+Do not accidentally attach a comment timestamp to the original post.
+
+Store:
+
+    content_type
+
+such as:
+
+    POST
+    COMMENT
+
+and the corresponding timestamp.
+
+============================================================
+9. OPPORTUNITY DETECTION
+============================================================
+
+Do NOT simply do:
+
+    if "developer" in text:
+        opportunity = True
+
+Instead build a rule-based scoring/decision system.
+
+The system should look for combinations of signals.
+
+Three major categories:
+
+    A. INTENT SIGNALS
+    B. SERVICE/SKILL SIGNALS
+    C. NEGATIVE/CONTEXT SIGNALS
+
+============================================================
+10. INTENT SIGNALS
+============================================================
+
+Intent signals indicate that someone may actually be looking
+for help, hiring, buying, outsourcing, or requesting work.
+
+Examples:
+
+    looking for
+    need someone
+    need a
+    need an
+    hiring
+    hire
+    looking to hire
+    looking for someone
+    can anyone help
+    can anyone recommend
+    anyone know someone
+    who can
+    someone who can
+    want to hire
+    searching for
+    seeking
+    freelancer needed
+    developer needed
+    designer needed
+    looking for a freelancer
+    looking for a developer
+    looking for a designer
+
+Use Regex.
+
+Do not require exact spelling if reasonable variations can be
+handled safely.
+
+============================================================
+11. SERVICE / SKILL SIGNALS
+============================================================
+
+Service signals identify what type of help may be required.
+
+Examples:
+
+    developer
+    programmer
+    Python
+    Django
+    web developer
+    software developer
+    website
+    web application
+    app
+    mobile app
+    designer
+    graphic designer
+    UI
+    UX
+    WordPress
+    ecommerce
+    automation
+    bot
+    API
+    database
+    data science
+    machine learning
+    AI
+    SEO
+    marketing
+    content
+    video editing
+    virtual assistant
+
+This list should remain configurable and expandable.
+
+============================================================
+12. NEGATIVE / NON-OPPORTUNITY SIGNALS
+============================================================
+
+Negative signals are extremely important.
+
+They prevent simple words from generating false alerts.
+
+Examples:
+
+    you need
+    your need
+    according to your need
+    needed for
+    no calculations needed
+    I am a developer
+    I am a designer
+    I am a programmer
+    as a developer
+    as a designer
+    developer here
+    I work as a developer
+    my website
+    website is
+    website was
+    website not
+    do you want
+    if you want
+    what you want
+    you want to
+    tutorial
+    documentation
+    example
+    error
+    solution
+    code explanation
+    how to
+    why does
+    why is
+
+These are not automatically always negative.
+
+Use them as contextual signals.
+
+Do not create a giant Regex that tries to solve every sentence.
+
+Use separate rules and logic.
+
+============================================================
+13. OPPORTUNITY DECISION
+============================================================
+
+The final decision should be based on combinations.
+
+Conceptually:
+
+    INTENT + SERVICE
+        = STRONG OPPORTUNITY
+
+    INTENT + PROBLEM
+        = POSSIBLE OPPORTUNITY
+
+    SERVICE ONLY
+        = WEAK / IGNORE
+
+    "developer" only
+        = NOT ENOUGH
+
+    "website" only
+        = NOT ENOUGH
+
+    NEGATIVE CONTEXT
+        = reduce confidence / ignore
+
+Example:
+
+    "Looking for a Python developer to build a website."
+
+Result:
+
+    INTENT = YES
+    SERVICE = YES
+    NEGATIVE = NO
+
+    → STRONG OPPORTUNITY
+
+
+Example:
+
+    "I am a Python developer."
+
+Result:
+
+    INTENT = NO
+    SERVICE = YES
+    NEGATIVE = YES
+
+    → NOT AN OPPORTUNITY
+
+
+Example:
+
+    "You need to install the latest version."
+
+Result:
+
+    INTENT = NO
+    SERVICE = NO
+    NEGATIVE = YES
+
+    → NOT AN OPPORTUNITY
+
+
+Example:
+
+    "Looking for someone who can build my Django website."
+
+Result:
+
+    INTENT = YES
+    SERVICE = YES
+    NEGATIVE = NO
+
+    → STRONG OPPORTUNITY
+
+============================================================
+14. USE SCORING IF IT MAKES THE CODE CLEANER
+============================================================
+
+A simple score is acceptable.
+
+Example:
+
+    +3  strong intent
+    +2  service/skill
+    +1  problem/request language
+    +1  budget/payment language
+    +1  urgency
+    -3  obvious self-promotion
+    -3  obvious tutorial/explanation
+    -2  "you need" context
+    -2  "I am a developer" context
+
+Then:
+
+    score >= threshold
+        opportunity
+
+    score < threshold
+        ignore
+
+The exact scoring values should be chosen after examining the
+real collected posts.
+
+Do NOT make the scoring unnecessarily complicated.
+
+The goal is understandable deterministic logic.
+
+============================================================
+15. PROBLEM-TO-SERVICE OPPORTUNITIES
+============================================================
+
+This is important.
+
+A real opportunity may NOT explicitly say:
+
+    "I need a developer."
+
+For example:
+
+    "My Django application keeps crashing and I can't figure out why."
+
+or:
+
+    "I need to automate this repetitive Excel process."
+
+or:
+
+    "My website isn't responsive and I need someone to fix it."
+
+These can represent real work opportunities.
+
+Therefore look for:
+
+    problem language
+        +
+    identifiable service/skill
+
+Examples:
+
+    error / broken / fix / build / create / develop / automate
+        +
+    Django / Python / website / app / API / database
+
+Potential opportunity.
+
+But distinguish actual requests from educational discussion.
+
+============================================================
+16. BUDGET / COMMERCIAL SIGNALS
+============================================================
+
+Commercial signals can strengthen an opportunity.
+
+Examples:
+
+    paid
+    budget
+    payment
+    paying
+    client
+    project
+    contract
+    proposal
+    quote
+    price
+    rate
+    compensation
+    salary
+    freelance
+    paid project
+
+If combined with:
+
+    intent + service
+
+the opportunity becomes stronger.
+
+Example:
+
+    "Looking for a Python developer. Paid project."
+
+Very strong signal.
+
+============================================================
+17. URGENCY SIGNALS
+============================================================
+
+Urgency is another useful signal.
+
+Examples:
+
+    urgent
+    ASAP
+    today
+    immediately
+    as soon as possible
+    this week
+    deadline
+    quickly
+
+Urgency does NOT create an opportunity by itself.
+
+It should increase confidence when an opportunity already exists.
+
+============================================================
+18. THE PERSON WE WANT
+============================================================
+
+The goal is NOT to find people saying:
+
+    "Interested"
+
+The goal is to find:
+
+    the person who actually has the need.
+
+For example:
+
+    GOOD:
+
+    "Looking for someone to build my website."
+
+    BAD:
+
+    "Interested."
+
+    BAD:
+
+    "I am a developer and available."
+
+The scanner should prioritize the original opportunity/request,
+not people responding to it.
+
+============================================================
+19. POST VS COMMENT
+============================================================
+
+Be careful with comments.
+
+A comment such as:
+
+    "I am interested."
+
+is NOT the opportunity.
+
+A comment such as:
+
+    "I need someone to fix my Django application."
+
+could itself be an opportunity.
+
+Therefore eventually support:
+
+    POST opportunity
+    COMMENT opportunity
+
+but preserve:
+
+    author
+    content_type
+    timestamp
+    parent post URL
+
+This allows us to identify the actual person with the need.
+
+============================================================
+20. AUTHOR INFORMATION
+============================================================
+
+For every strong opportunity, attempt to capture:
+
+    author name
+    post/comment
+    post URL
+    group
+    text
+    timestamp
+
+The most important person is:
+
+    the author of the opportunity.
+
+Do not confuse:
+
+    opportunity author
+
+with:
+
+    someone replying to the opportunity.
+
+============================================================
+21. RESULT FILE
+============================================================
+
+Continue saving matches to:
+
+    PersonalTouch/search_results.txt
+
+Append only.
+
+Do not overwrite.
+
+For each opportunity store:
+
+    Detection time
+    Group
+    Group URL
+    Content type
+    Author
+    Post URL
+    Matched signals
+    Opportunity score
+    Timestamp
+    Age
+    Freshness
+    Post/comment text
+
+Example:
+
+    ==================================================
+    OPPORTUNITY FOUND
+    ==================================================
+
+    Detected:
+        2026-08-29 22:30:12
+
+    Group:
+        Python Remote Jobs
+
+    Content:
+        POST
+
+    Author:
+        Example Person
+
+    URL:
+        https://facebook.com/...
+
+    Signals:
+        looking_for
+        developer
+        website
+        paid
+
+    Score:
+        8
+
+    Facebook Timestamp:
+        45s
+
+    Age:
+        45 seconds
+
+    Freshness:
+        VERY_RECENT
+
+    Text:
+        Looking for a Python developer to build
+        a website. Paid project.
+
+    ==================================================
+
+============================================================
+22. ALERT
+============================================================
+
+Alert ONLY for genuine opportunities that pass the relevance
+threshold AND are within the 6-day freshness window.
+
+    < 1 minute:
+        3 beeps
+
+    < 24 hours:
+        2 beeps
+
+    < 6 days:
+        1 beep
+
+    > 6 days:
+        no alert
+
+    UNKNOWN:
+        no freshness alert
+
+Do not stop the scanner.
+
+Do not pause for human review.
+
+The user will inspect the saved URL separately.
+
+============================================================
+23. GROUP QUEUE
+============================================================
+
+Keep:
+
+    PersonalTouch/groupList.txt
+
+as the ACTIVE GROUP queue.
+
+When a group is successfully scanned:
+
+    move first line to bottom.
+
+Example:
+
+    A
+    B
+    C
+
+After A:
+
+    B
+    C
+    A
+
+If A fails:
+
+    A
+    B
+    C
+
+This provides automatic resume behavior.
+
+============================================================
+24. INACTIVE GROUPS
+============================================================
+
+Create:
+
+    PersonalTouch/inactive_groups.txt
+
+for groups that appear inactive.
+
+Do not delete them.
+
+The scanner can move a group there if it has no meaningful
+recent activity.
+
+However, do NOT make the system permanently forget the group.
+
+Later we can build a periodic reactivation check.
+
+============================================================
+25. DO NOT OVER-SCAN DEAD GROUPS
+============================================================
+
+The main scanner should prioritize active groups.
+
+Conceptually:
+
+    ACTIVE GROUPS
+        ↓
+    deep scanning
+        ↓
+    opportunity detection
+
+    INACTIVE GROUPS
+        ↓
+    skip for now
+        ↓
+    occasional re-check later
+
+The inactive-group recheck is NOT the priority for this version.
+
+============================================================
+26. CONTINUOUS OPERATION
+============================================================
+
+The scanner must run continuously.
+
+Example:
+
+    Group A
+       ↓
+    scan
+       ↓
+    Group B
+       ↓
+    scan
+       ↓
+    Group C
+       ↓
+    scan
+       ↓
+    ...
+       ↓
+    Group 92
+       ↓
+    Group A
+       ↓
+    repeat
+
+A match must NOT interrupt this loop.
+
+============================================================
+27. NO NEW GROUP DISCOVERY YET
+============================================================
+
+Do NOT implement automated discovery of new Facebook groups
+in this version.
+
+That is a separate future subsystem.
+
+Future architecture may be:
+
+    GROUP DISCOVERY
+        ↓
+    evaluate new groups
+        ↓
+    active?
+        ↓
+    add to groupList.txt
+
+But that is NOT part of the current implementation.
+
+Current objective:
+
+    maximize opportunity detection
+    inside groups we already collected.
+
+============================================================
+28. PERFORMANCE PRIORITY
+============================================================
+
+Do NOT optimize by removing the current waiting/scrolling behavior
+just to make it faster.
+
+The current priority is:
+
+    reliability
+    freshness
+    opportunity quality
+    continuous scanning
+
+not maximum speed.
+
+============================================================
+29. HEADLESS MODE
+============================================================
+
+Do not switch to headless mode automatically yet.
+
+Keep visible Chrome while debugging.
+
+However, preserve a clean option such as:
+
+    HEADLESS = False
+
+so we can later run:
+
+    HEADLESS = True
+
+without redesigning the scanner.
+
+============================================================
+30. IMPORTANT CURRENT BUG TO FIX
+============================================================
+
+The existing result data demonstrates that timestamp/freshness
+logic can produce impossible results.
+
+For example:
+
+    Facebook timestamp:
+        April 2026
+
+    but:
+        Post Age = 1 minute
+
+This MUST be fixed.
+
+Never allow:
+
+    old absolute timestamp
+        +
+    fake recent age
+
+to trigger:
+
+    3 beeps
+
+Timestamp correctness is more important than alerting.
+
+============================================================
+31. OPPORTUNITY PIPELINE
+============================================================
+
+The final processing pipeline should be:
+
+    GROUP
+      ↓
+    CHECK ACTIVITY
+      ↓
+    ACTIVE?
+      │
+      ├── NO
+      │    ↓
+      │  inactive_groups.txt
+      │
+      └── YES
+           ↓
+        FIND POSTS
+           ↓
+        EXTRACT CONTENT
+           ↓
+        IDENTIFY AUTHOR
+           ↓
+        IDENTIFY POST/COMMENT
+           ↓
+        EXTRACT TIMESTAMP
+           ↓
+        AGE > 6 DAYS?
+           │
+           ├── YES → IGNORE
+           │
+           └── NO
+                ↓
+          OPPORTUNITY ENGINE
+                ↓
+        ┌───────┼────────┐
+        ▼       ▼        ▼
+      INTENT  SERVICE  NEGATIVE
+        │       │        │
+        └───────┼────────┘
+                ▼
+          SCORE / DECISION
+                │
+          ┌─────┴─────┐
+          ▼           ▼
+        IGNORE     OPPORTUNITY
+                       │
+                       ▼
+                    SAVE
+                       │
+                       ▼
+                    ALERT
+                       │
+                       ▼
+                   CONTINUE
+
+
+============================================================
+32. PRIORITY OF SIGNALS
+============================================================
+
+Strongest:
+
+    "Looking for a Python developer"
+    "Need someone to build my website"
+    "Hiring a Django developer"
+    "Can anyone recommend a freelancer?"
+    "Looking for someone who can fix my application"
+
+Medium:
+
+    "My website is broken and I need help"
+    "Need help automating this process"
+    "Anyone know someone who can build this?"
+
+Weak:
+
+    "developer"
+    "website"
+    "Python"
+    "need"
+
+Ignore / negative:
+
+    "I am a developer"
+    "you need..."
+    "according to your need"
+    "how to..."
+    "tutorial..."
+    "interested"
+
+============================================================
+33. IMPORTANT: "INTERESTED" IS NO LONGER A STRONG OPPORTUNITY
+============================================================
+
+Keep "interested" as a possible signal for compatibility with
+the old system, but do NOT treat it as a strong opportunity.
+
+Example:
+
+    "Interested."
+
+should NOT generate a high-confidence opportunity.
+
+It is usually someone responding to another person's post.
+
+The scanner should prioritize the person expressing the actual need.
+
+============================================================
+34. MATCH QUALITY
+============================================================
+
+Every detected opportunity should have a quality classification:
+
+    STRONG
+    POSSIBLE
+    WEAK
+
+Only:
+
+    STRONG
+    and optionally selected POSSIBLE
+
+should generate alerts.
+
+The threshold should be configurable.
+
+The goal is:
+
+    fewer alerts
+    higher quality
+
+NOT:
+
+    thousands of keyword matches.
+
+============================================================
+35. DUPLICATE DETECTION
+============================================================
+
+Keep duplicate detection.
+
+The same post may appear many times during scrolling.
+
+One opportunity should produce:
+
+    one saved record
+    one alert
+
+Use:
+
+    post URL
+
+when available.
+
+For comments:
+
+    comment URL/ID
+
+when available.
+
+Do not alert repeatedly for the same content.
+
+============================================================
+36. FILE SEPARATION
+============================================================
+
+Use:
+
+    groupList.txt
+        ACTIVE groups
+
+    inactive_groups.txt
+        INACTIVE groups
+
+    search_results.txt
+        DETECTED opportunities
+
+These have three different purposes.
+
+Do not mix them.
+
+============================================================
+37. FUTURE DATABASE
+============================================================
+
+Do not create a database now.
+
+Design the data structure so that later:
+
+    search_results.txt
+
+can be replaced by:
+
+    opportunities table
+
+and eventually:
+
+    groups table
+    authors table
+    posts table
+    opportunities table
+    scan history
+
+But do not implement this yet.
+
+============================================================
+38. RECOMMENDED FUNCTIONS
+============================================================
+
+Keep responsibilities separated.
+
+Possible functions:
+
+    load_group_queue()
+
+    save_group_queue()
+
+    rotate_current_group()
+
+    move_group_to_inactive()
+
+    check_group_activity()
+
+    find_post_containers()
+
+    extract_post_text()
+
+    extract_author()
+
+    extract_content_type()
+
+    extract_post_url()
+
+    extract_timestamp()
+
+    parse_timestamp()
+
+    calculate_age()
+
+    classify_freshness()
+
+    find_intent_signals()
+
+    find_service_signals()
+
+    find_negative_signals()
+
+    find_commercial_signals()
+
+    find_urgency_signals()
+
+    calculate_opportunity_score()
+
+    classify_opportunity()
+
+    build_opportunity()
+
+    build_opportunity_key()
+
+    save_opportunity()
+
+    alert_opportunity()
+
+    scan_group()
+
+    run_continuous_scanner()
+
+Names may differ if the current code already has equivalent functions.
+
+Do not create unnecessary abstractions.
+
+============================================================
+39. FINAL CORE ARCHITECTURE
+============================================================
+
+                EXISTING GROUPS
+                       │
+                       ▼
+                GROUP ACTIVITY
+                       │
+             ┌─────────┴─────────┐
+             ▼                   ▼
+          ACTIVE              INACTIVE
+             │                   │
+             ▼                   ▼
+       DEEP SCANNING       inactive_groups.txt
+             │
+             ▼
+           POSTS
+             │
+             ▼
+      POST / COMMENT
+             │
+             ▼
+       AUTHOR + TEXT
+             │
+             ▼
+        TIMESTAMP
+             │
+             ▼
+       <= 6 DAYS ?
+          /       \
+        NO         YES
+        │           │
+      IGNORE        ▼
+              OPPORTUNITY ENGINE
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼
+      INTENT      SERVICE      NEGATIVE
+        │            │            │
+        └────────────┼────────────┘
+                     ▼
+               OPPORTUNITY SCORE
+                     │
+                     ▼
+                 QUALITY
+                     │
+             ┌───────┴───────┐
+             ▼               ▼
+           IGNORE         OPPORTUNITY
+                             │
+                    ┌────────┴────────┐
+                    ▼                 ▼
+                  SAVE              ALERT
+                    │                 │
+                    │       ┌─────────┼─────────┐
+                    │       ▼         ▼         ▼
+                    │      🔔        🔔🔔      🔔🔔🔔
+                    │      6d         24h        1m
+                    │
+                    ▼
+                 CONTINUE
+                    │
+                    ▼
+              NEXT POST/GROUP
+                    │
+                    ▼
+               REPEAT FOREVER
+
+
+============================================================
+40. MOST IMPORTANT PRINCIPLE
+============================================================
+
+We are NOT building a:
+
+    keyword finder.
+
+We are building a:
+
+    RECENT OPPORTUNITY FINDER.
+
+The question for every piece of content is:
+
+    "Is there a realistic possibility that this person
+     currently needs a service or person to do work?"
+
+NOT:
+
+    "Does this text contain the word developer?"
+
+The system should prefer:
+
+    fewer
+    newer
+    higher-quality
+    actionable opportunities
+
+over:
+
+    many
+    old
+    noisy
+    irrelevant matches.
+
+============================================================
+41. IMPLEMENTATION RULE
+============================================================
+
+Before modifying the code:
+
+    1. Inspect the current SearchInterested.py.
+    2. Inspect notifier.py.
+    3. Inspect the existing timestamp implementation.
+    4. Inspect the existing group queue implementation.
+    5. Identify exactly why old posts are being marked VERY_RECENT.
+    6. Identify how post text and author are currently extracted.
+    7. Preserve working Selenium/XPath logic.
+    8. Modify incrementally.
+
+Do NOT blindly rewrite the 740-line script.
+
+Do NOT claim a timestamp is correct without verifying the actual
+DOM element being used.
+
+============================================================
+42. ACCEPTANCE CRITERIA
+============================================================
+
+The implementation is successful only if:
+
+    [ ] Match does not stop scanner
+    [ ] Match does not call input()
+    [ ] Match is saved to search_results.txt
+    [ ] Match produces appropriate beep
+    [ ] Same post does not repeatedly alert
+    [ ] Posts older than 6 days are ignored
+    [ ] < 24 hours produces 2 beeps
+    [ ] < 1 minute produces 3 beeps
+    [ ] 1-6 days produces 1 beep
+    [ ] Unknown timestamp does not falsely appear fresh
+    [ ] Timestamp belongs to correct post/comment
+    [ ] Author is captured when possible
+    [ ] "developer" alone does not create strong opportunity
+    [ ] "interested" alone does not create strong opportunity
+    [ ] "you need..." does not create false opportunity
+    [ ] "I am a developer" does not create opportunity
+    [ ] Intent + service creates strong opportunity
+    [ ] Commercial/urgency signals can strengthen opportunity
+    [ ] Active groups are prioritized
+    [ ] Inactive groups can be moved to inactive_groups.txt
+    [ ] groupList.txt remains a persistent rotating queue
+    [ ] Restart resumes from the current group
+    [ ] Failed group remains at the top
+    [ ] Successful group moves to bottom
+    [ ] Scanner continuously cycles through active groups
+    [ ] No ML/AI/NLP is introduced
+    [ ] Existing Selenium architecture is preserved
+
+
+============================================================
+FINAL OUTPUT
+============================================================
+
+After implementation, explain clearly:
+
+    1. What you changed.
+    2. Why the previous Regex generated false positives.
+    3. How the new opportunity engine works.
+    4. How freshness now works.
+    5. How the 1/2/3 beep system works.
+    6. How post vs comment is handled.
+    7. How the actual opportunity author is identified.
+    8. How active groups are determined.
+    9. How inactive groups are handled.
+   10. How groupList.txt resumes after restart.
+   11. How search_results.txt stores opportunities.
+   12. How duplicate opportunities are prevented.
+   13. What remains to be improved later.
+
+Do not implement group discovery in this version.
+
+Do not implement the database in this version.
+
+The immediate goal is:
+
+    EXISTING GROUPS
+        ↓
+    FIND ACTIVE GROUPS
+        ↓
+    FIND RECENT CONTENT
+        ↓
+    FIND REAL OPPORTUNITIES
+        ↓
+    SAVE
+        ↓
+    ALERT
+        ↓
+    CONTINUE SCANNING

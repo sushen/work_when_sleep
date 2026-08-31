@@ -1,0 +1,1616 @@
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 11:26:33
+
+Group:
+Django Web Framework
+
+Group URL:
+https://www.facebook.com/groups/djangowebframework/
+
+Post URL:
+https://www.facebook.com/groups/djangowebframework/posts/10169105110175521/?comment_id=10173710613575521
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Wednesday, April 1, 2026 at 4:47 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Alexander Kiselev
+·
+21w
+Most likely, your error is in views.py. You need to extract the code from the form data, find the corresponding DiscountCode o… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:21:09
+
+Group:
+Django Developers Community
+
+Group URL:
+https://www.facebook.com/groups/django.pyt/
+
+Post URL:
+https://www.facebook.com/groups/django.pyt/posts/1562887150918431/?comment_id=1577725269434619
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Monday, February 19, 2024 at 1:34 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Muhammad Omer Hameed
+·
+2y
+Go in settings.py file , there you will see the database settings change it according to your need either localhost or remote … See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:22:36
+
+Group:
+Django Developers Community
+
+Group URL:
+https://www.facebook.com/groups/django.pyt/
+
+Post URL:
+https://www.facebook.com/groups/django.pyt/posts/1571972056676607/?comment_id=1577688566104956
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Sunday, February 18, 2024 at 11:58 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Ahmed Hamdy
+·
+2y
+·
+Follow
+When you open the register page it is a get method otherwise when you submit the form it changes to post method .. you need to… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:24:23
+
+Group:
+Math for Science & Programming
+
+Group URL:
+https://www.facebook.com/groups/mathfordatascience/
+
+Post URL:
+https://www.facebook.com/groups/mathforaibigdata/posts/2966267807040623/?comment_id=2966396847027719
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+10h
+
+Post Age:
+10 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Kristofers Džons Akenfelds
+·
+10h
+150. No calculations needed, just common sense.
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:32:26
+
+Group:
+Data Science
+
+Group URL:
+https://www.facebook.com/groups/DataScienceGroup/
+
+Post URL:
+https://www.facebook.com/groups/DataScienceGroup/posts/6331460373582466/?comment_id=6334606333267870
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Wednesday, April 5, 2023 at 3:36 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Susovan Dey
+·
+3y
+Use latest chrome driver or else there is a python library for cheromedriver which u can use so u don't need to download it
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:35:12
+
+Group:
+Data Science
+
+Group URL:
+https://www.facebook.com/groups/DataScienceGroup/
+
+Post URL:
+https://www.facebook.com/groups/DataScienceGroup/posts/28277476281887560/?comment_id=28373796325588888
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+3d
+
+Post Age:
+3 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Denise Skidmore
+·
+3d
+The only time it's acceptable to fabricate numbers is when demonstrating a numerical method and you need special cases to demo… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:54:10
+
+Group:
+Python Remote Jobs
+
+Group URL:
+https://www.facebook.com/groups/python.remote.jobs/
+
+Post URL:
+https://www.facebook.com/groups/python.remote.jobs/posts/4434466686786169/?comment_id=4537422786490558
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+10w
+
+Post Age:
+70 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Krishn Keshav
+·
+10w
+Interested, will be in touch.
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:54:44
+
+Group:
+Python Remote Jobs
+
+Group URL:
+https://www.facebook.com/groups/python.remote.jobs/
+
+Post URL:
+https://www.facebook.com/groups/python.remote.jobs/posts/4394951310737707/?comment_id=4537423406490496
+
+Matched Patterns:
+    \bhiring\b
+
+Facebook Timestamp:
+10w
+
+Post Age:
+70 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Krishn Keshav
+·
+10w
+If you are still hiring, I'm in
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 12:58:29
+
+Group:
+Python Help
+
+Group URL:
+https://www.facebook.com/groups/3051881851503314/
+
+Post URL:
+https://www.facebook.com/groups/3051881851503314/posts/28606317562299725/?comment_id=28607596762171805
+
+Matched Patterns:
+    \bdeveloper\b
+
+Facebook Timestamp:
+2d
+
+Post Age:
+2 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Faizan Khan
+·
+2d
+Tamara Jones
+Hello Tamara, I am a python developer and a tutor
+I also run a youtube channel
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:00:07
+
+Group:
+(2) Official Python Programmers BD Community
+
+Group URL:
+https://www.facebook.com/groups/4423889427637168/
+
+Post URL:
+https://www.facebook.com/groups/officialpythonbdcommunity/posts/26829346793331445/?comment_id=27277509818515138
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+Monday, August 26, 2024 at 12:46 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Ibn Hadi
+·
+2y
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:01:51
+
+Group:
+(2) Official Python Programmers BD Community
+
+Group URL:
+https://www.facebook.com/groups/4423889427637168/
+
+Post URL:
+https://www.facebook.com/groups/officialpythonbdcommunity/posts/37550965457836138/?comment_id=37725151093750906
+
+Matched Patterns:
+    \bdeveloper\b
+
+Facebook Timestamp:
+8w
+
+Post Age:
+56 days
+
+Freshness:
+NORMAL
+
+Post Text:
+QComp, Web3, Blockchain Abir Lab
+·
+8w
+·
+Follow
+Web3/Blockchain developer and All Programmer in Bangladesh
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:18:23
+
+Group:
+(2) Programmers Place (share your ideas, codes and Problems)
+
+Group URL:
+https://www.facebook.com/groups/465747676834716/
+
+Post URL:
+https://www.facebook.com/groups/465747676834716/posts/3281942085215247/?comment_id=6703099279766160
+
+Matched Patterns:
+    \bwants?\b
+
+Facebook Timestamp:
+Monday, October 23, 2023 at 9:12 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Jamie Langston
+·
+2y
+Your request is foggy. Do you want to compile a visual studio project from the command line, or do you want to create a projec… See more
+Reply
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:23:08
+
+Group:
+Python Bangladesh
+
+Group URL:
+https://www.facebook.com/groups/pythonbd/
+
+Post URL:
+https://www.facebook.com/groups/pythonbd/posts/26657995097208555/?comment_id=26819873411020722
+
+Matched Patterns:
+    \binterested\b
+    \bwants?\b
+
+Facebook Timestamp:
+4w
+
+Post Age:
+28 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Kaiser Konok
+·
+4w
+I can teach you if you want. Let me know if you are interested. Inbox me
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:23:22
+
+Group:
+Python Bangladesh
+
+Group URL:
+https://www.facebook.com/groups/pythonbd/
+
+Post URL:
+https://www.facebook.com/groups/pythonbd/posts/27134666379541422/?comment_id=27186999467641446
+
+Matched Patterns:
+    \bwants?\b
+    \bhire\b
+
+Facebook Timestamp:
+3d
+
+Post Age:
+3 days
+
+Freshness:
+NORMAL
+
+Post Text:
+BD_6_007
+·
+3d
+If you have the qualifications, they will hire you. What more do you want?
+Reply
+Share
+Edited
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:27:18
+
+Group:
+Python Bangladesh
+
+Group URL:
+https://www.facebook.com/groups/pythonbd/
+
+Post URL:
+https://www.facebook.com/groups/pythonbd/posts/26725565180451546/?comment_id=26810933285248068
+
+Matched Patterns:
+    \bdeveloper\b
+
+Facebook Timestamp:
+5w
+
+Post Age:
+35 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Debugger5288
+·
+5w
+Sudhu developing e stuck hoye thaiken na.
+Amio ek somoy Python Django Developer cilam. 2yr+ experience e ami Fastapi, Laravel… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:48:58
+
+Group:
+(2) গল্পে গল্পে কোডিং শিখি
+
+Group URL:
+https://www.facebook.com/groups/golpegolpe/
+
+Post URL:
+https://www.facebook.com/groups/golpegolpe/posts/3669844723081393/?comment_id=3669988936400305
+
+Matched Patterns:
+    \bwebsite\b
+
+Facebook Timestamp:
+Sunday, January 17, 2021 at 7:38 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Mihir Biswas
+·
+5y
+Apu website ar video responsive na...
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:56:05
+
+Group:
+Artificial intelligence, Machine learning, Deep learning
+
+Group URL:
+https://www.facebook.com/groups/2059467967664033/
+
+Post URL:
+https://www.facebook.com/groups/2059467967664033/posts/4659153597695444/?comment_id=4659371694340301
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+4h
+
+Post Age:
+4 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Simon Mabunda
+·
+4h
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:56:50
+
+Group:
+Artificial intelligence, Machine learning, Deep learning
+
+Group URL:
+https://www.facebook.com/groups/2059467967664033/
+
+Post URL:
+https://www.facebook.com/groups/2059467967664033/posts/4652583541685783/?comment_id=4652932344984236
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+Sunday, August 23, 2026 at 10:07 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Mirza Zaeem
+·
+6d
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 13:57:00
+
+Group:
+Artificial intelligence, Machine learning, Deep learning
+
+Group URL:
+https://www.facebook.com/groups/2059467967664033/
+
+Post URL:
+https://www.facebook.com/groups/2059467967664033/posts/4652583541685783/?comment_id=4652595278351276
+
+Matched Patterns:
+    \blooking\s+for\b
+
+Facebook Timestamp:
+Sunday, August 23, 2026 at 1:55 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Smara Kazenango
+·
+6d
+Looking for a Fraud detection model
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 14:09:29
+
+Group:
+(1) Stack Learner - Programming Community
+
+Group URL:
+https://www.facebook.com/groups/stacklearner/
+
+Post URL:
+https://www.facebook.com/groups/stacklearner/posts/2118511365444513/?comment_id=2118511775444472
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+1w
+
+Post Age:
+7 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Imran Khan
+·
+1w
+·
+Author
+need help
+Reply
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 18:09:42
+
+Group:
+(2) Django Web Framework
+
+Group URL:
+https://www.facebook.com/groups/djangowebframework/
+
+Post URL:
+https://www.facebook.com/groups/djangowebframework/posts/10169105110175521/?comment_id=10173710613575521
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Wednesday, April 1, 2026 at 4:47 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Alexander Kiselev
+·
+21w
+Most likely, your error is in views.py. You need to extract the code from the form data, find the corresponding DiscountCode o… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 19:45:20
+
+Group:
+Artificial intelligence, Machine learning, Deep learning
+
+Group URL:
+https://www.facebook.com/groups/2059467967664033/
+
+Post URL:
+https://www.facebook.com/groups/2059467967664033/posts/4652583541685783/?comment_id=4652932344984236
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+Sunday, August 23, 2026 at 10:07 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Mirza Zaeem
+·
+6d
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 19:45:30
+
+Group:
+Artificial intelligence, Machine learning, Deep learning
+
+Group URL:
+https://www.facebook.com/groups/2059467967664033/
+
+Post URL:
+https://www.facebook.com/groups/2059467967664033/posts/4652583541685783/?comment_id=4652595278351276
+
+Matched Patterns:
+    \blooking\s+for\b
+
+Facebook Timestamp:
+Sunday, August 23, 2026 at 1:55 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Smara Kazenango
+·
+6d
+Looking for a Fraud detection model
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 19:58:29
+
+Group:
+(1) Stack Learner - Programming Community
+
+Group URL:
+https://www.facebook.com/groups/stacklearner/
+
+Post URL:
+https://www.facebook.com/groups/stacklearner/posts/2118511365444513/?comment_id=2118511775444472
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+1w
+
+Post Age:
+7 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Imran Khan
+·
+1w
+·
+Author
+need help
+Reply
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:00:31
+
+Group:
+Python Projects Community
+
+Group URL:
+https://www.facebook.com/groups/pypcom/
+
+Post URL:
+https://www.facebook.com/groups/pypcom/posts/3015745492095833/?comment_id=3016336702036712
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+1h
+
+Post Age:
+1 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Tami Longin Stewart
+·
+1h
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:00:43
+
+Group:
+Python Projects Community
+
+Group URL:
+https://www.facebook.com/groups/pypcom/
+
+Post URL:
+https://www.facebook.com/groups/pypcom/posts/3015745492095833/?comment_id=3016261178710931
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+2h
+
+Post Age:
+2 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Tasneem A. Kraishan
+·
+2h
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:00:50
+
+Group:
+Python Projects Community
+
+Group URL:
+https://www.facebook.com/groups/pypcom/
+
+Post URL:
+https://www.facebook.com/groups/pypcom/posts/3015441422126240/?comment_id=3015548805448835
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+21h
+
+Post Age:
+21 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Ganesh Patil
+·
+21h
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:00:58
+
+Group:
+Python Projects Community
+
+Group URL:
+https://www.facebook.com/groups/pypcom/
+
+Post URL:
+https://www.facebook.com/groups/pypcom/posts/3015441422126240/?comment_id=3015524472117935
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+21h
+
+Post Age:
+21 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Illés Kornél És Szilvi
+·
+21h
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:17:12
+
+Group:
+Django Web Framework
+
+Group URL:
+https://www.facebook.com/groups/djangowebframework/
+
+Post URL:
+https://www.facebook.com/groups/djangowebframework/posts/10169105110175521/?comment_id=10173710613575521
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Wednesday, April 1, 2026 at 4:47 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Alexander Kiselev
+·
+21w
+Most likely, your error is in views.py. You need to extract the code from the form data, find the corresponding DiscountCode o… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:36:33
+
+Group:
+Django Developers Community
+
+Group URL:
+https://www.facebook.com/groups/django.pyt/
+
+Post URL:
+https://www.facebook.com/groups/django.pyt/posts/1562887150918431/?comment_id=1577725269434619
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Monday, February 19, 2024 at 1:34 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Muhammad Omer Hameed
+·
+2y
+Go in settings.py file , there you will see the database settings change it according to your need either localhost or remote … See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:38:10
+
+Group:
+Django Developers Community
+
+Group URL:
+https://www.facebook.com/groups/django.pyt/
+
+Post URL:
+https://www.facebook.com/groups/django.pyt/posts/1571972056676607/?comment_id=1577688566104956
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Sunday, February 18, 2024 at 11:58 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Ahmed Hamdy
+·
+2y
+·
+Follow
+When you open the register page it is a get method otherwise when you submit the form it changes to post method .. you need to… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:40:00
+
+Group:
+(1) Math for Science & Programming
+
+Group URL:
+https://www.facebook.com/groups/mathfordatascience/
+
+Post URL:
+https://www.facebook.com/groups/mathforaibigdata/posts/2966267807040623/?comment_id=2966396847027719
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+18h
+
+Post Age:
+18 hours
+
+Freshness:
+NORMAL
+
+Post Text:
+Kristofers Džons Akenfelds
+·
+18h
+150. No calculations needed, just common sense.
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:47:35
+
+Group:
+Data Science
+
+Group URL:
+https://www.facebook.com/groups/DataScienceGroup/
+
+Post URL:
+https://www.facebook.com/groups/DataScienceGroup/posts/6331460373582466/?comment_id=6334606333267870
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+Wednesday, April 5, 2023 at 3:36 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Susovan Dey
+·
+3y
+Use latest chrome driver or else there is a python library for cheromedriver which u can use so u don't need to download it
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 20:49:49
+
+Group:
+Data Science
+
+Group URL:
+https://www.facebook.com/groups/DataScienceGroup/
+
+Post URL:
+https://www.facebook.com/groups/DataScienceGroup/posts/28277476281887560/?comment_id=28373796325588888
+
+Matched Patterns:
+    \bneed(?:s|ed|ing)?\b
+
+Facebook Timestamp:
+4d
+
+Post Age:
+4 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Denise Skidmore
+·
+4d
+The only time it's acceptable to fabricate numbers is when demonstrating a numerical method and you need special cases to demo… See more
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 21:08:27
+
+Group:
+Python Remote Jobs
+
+Group URL:
+https://www.facebook.com/groups/python.remote.jobs/
+
+Post URL:
+https://www.facebook.com/groups/python.remote.jobs/posts/4434466686786169/?comment_id=4537422786490558
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+10w
+
+Post Age:
+70 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Krishn Keshav
+·
+10w
+Interested, will be in touch.
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 21:09:02
+
+Group:
+Python Remote Jobs
+
+Group URL:
+https://www.facebook.com/groups/python.remote.jobs/
+
+Post URL:
+https://www.facebook.com/groups/python.remote.jobs/posts/4394951310737707/?comment_id=4537423406490496
+
+Matched Patterns:
+    \bhiring\b
+
+Facebook Timestamp:
+10w
+
+Post Age:
+70 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Krishn Keshav
+·
+10w
+If you are still hiring, I'm in
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 22:23:16
+
+Group:
+Python Help
+
+Group URL:
+https://www.facebook.com/groups/3051881851503314/
+
+Post URL:
+https://www.facebook.com/groups/3051881851503314/posts/28606317562299725/?comment_id=28607596762171805
+
+Matched Patterns:
+    \bdeveloper\b
+
+Facebook Timestamp:
+3d
+
+Post Age:
+3 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Faizan Khan
+·
+3d
+Tamara Jones
+Hello Tamara, I am a python developer and a tutor
+I also run a youtube channel
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 22:26:02
+
+Group:
+Official Python Programmers BD Community
+
+Group URL:
+https://www.facebook.com/groups/4423889427637168/
+
+Post URL:
+https://www.facebook.com/groups/officialpythonbdcommunity/posts/26829346793331445/?comment_id=27277509818515138
+
+Matched Patterns:
+    \binterested\b
+
+Facebook Timestamp:
+Tuesday, August 27, 2024 at 1:46 AM
+
+Post Age:
+1 minutes
+
+Freshness:
+VERY_RECENT
+
+Post Text:
+Ibn Hadi
+·
+2y
+Interested
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 22:42:39
+
+Group:
+(1) Programmers Place (share your ideas, codes and Problems)
+
+Group URL:
+https://www.facebook.com/groups/465747676834716/
+
+Post URL:
+https://www.facebook.com/groups/465747676834716/posts/3281942085215247/?comment_id=6703099279766160
+
+Matched Patterns:
+    \bwants?\b
+
+Facebook Timestamp:
+Monday, October 23, 2023 at 9:12 PM
+
+Post Age:
+UNKNOWN
+
+Freshness:
+UNKNOWN
+
+Post Text:
+Jamie Langston
+·
+2y
+Your request is foggy. Do you want to compile a visual studio project from the command line, or do you want to create a projec… See more
+Reply
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 22:46:37
+
+Group:
+Python Bangladesh
+
+Group URL:
+https://www.facebook.com/groups/pythonbd/
+
+Post URL:
+https://www.facebook.com/groups/pythonbd/posts/26657995097208555/?comment_id=26819873411020722
+
+Matched Patterns:
+    \binterested\b
+    \bwants?\b
+
+Facebook Timestamp:
+5w
+
+Post Age:
+35 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Online status indicator
+Active
+Kaiser Konok
+·
+5w
+I can teach you if you want. Let me know if you are interested. Inbox me
+Reply
+Share
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 22:47:05
+
+Group:
+Python Bangladesh
+
+Group URL:
+https://www.facebook.com/groups/pythonbd/
+
+Post URL:
+https://www.facebook.com/groups/pythonbd/posts/27134666379541422/?comment_id=27186999467641446
+
+Matched Patterns:
+    \bwants?\b
+    \bhire\b
+
+Facebook Timestamp:
+4d
+
+Post Age:
+4 days
+
+Freshness:
+NORMAL
+
+Post Text:
+BD_6_007
+·
+4d
+If you have the qualifications, they will hire you. What more do you want?
+Reply
+Share
+Edited
+
+==================================================
+
+==================================================
+MATCH FOUND
+==================================================
+
+Detected:
+2026-08-29 22:50:16
+
+Group:
+Python Bangladesh
+
+Group URL:
+https://www.facebook.com/groups/pythonbd/
+
+Post URL:
+https://www.facebook.com/groups/pythonbd/posts/26725565180451546/?comment_id=26810933285248068
+
+Matched Patterns:
+    \bdeveloper\b
+
+Facebook Timestamp:
+5w
+
+Post Age:
+35 days
+
+Freshness:
+NORMAL
+
+Post Text:
+Debugger5288
+·
+5w
+Sudhu developing e stuck hoye thaiken na.
+Amio ek somoy Python Django Developer cilam. 2yr+ experience e ami Fastapi, Laravel… See more
+Reply
+Share
+
+==================================================
+
