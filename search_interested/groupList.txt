@@ -1,8 +1,3 @@
-https://www.facebook.com/groups/4423889427637168/
-https://www.facebook.com/groups/1683942554951706/
-https://www.facebook.com/groups/1768574493359167/
-https://www.facebook.com/groups/InsaneTech/
-https://www.facebook.com/groups/pythonprogrammingclub/
 https://www.facebook.com/groups/10ms.programming/
 https://www.facebook.com/groups/pythonsnake2/
 https://www.facebook.com/groups/402353916617590/
@@ -89,3 +84,8 @@ https://www.facebook.com/groups/python.remote.jobs/
 https://www.facebook.com/groups/python.morioh/
 https://www.facebook.com/groups/fullstack.django/
 https://www.facebook.com/groups/3051881851503314/
+https://www.facebook.com/groups/4423889427637168/
+https://www.facebook.com/groups/1683942554951706/
+https://www.facebook.com/groups/1768574493359167/
+https://www.facebook.com/groups/InsaneTech/
+https://www.facebook.com/groups/pythonprogrammingclub/
