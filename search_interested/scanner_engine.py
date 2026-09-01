@@ -29,6 +29,7 @@ from .facebook_dom import (
     scroll_down,
     wait_for_posts,
 )
+from .group_lifecycle import GroupLifecycleManager
 from .group_queue import (
     get_current_group,
     load_group_urls,
@@ -123,7 +124,7 @@ def is_meaningful_activity_text(text):
     return len(normalize_space(text)) >= MIN_ACTIVITY_TEXT_CHARS
 
 
-def scan_loaded_posts(browser, group_name, group_url, seen_posts):
+def scan_loaded_posts(browser, group_name, group_url, seen_posts, opportunities_found=None):
     posts = find_post_containers(browser)
     print(f"[SCAN] {len(posts)} posts detected")
 
@@ -177,6 +178,8 @@ def scan_loaded_posts(browser, group_name, group_url, seen_posts):
             save_opportunity(opportunity)
             alert_opportunity(opportunity)
             display_opportunity(opportunity)
+            if opportunities_found is not None:
+                opportunities_found.append(opportunity)
         except StaleElementReferenceException:
             print("[ERROR] Post became stale; skipping it.")
         except WebDriverException as error:
@@ -209,32 +212,38 @@ def scan_group(browser, group_url, group_index, group_count, seen_posts):
     if activity_info["status"] == "UNKNOWN":
         print("[GROUP] Activity timestamp confidence is unknown; scanning conservatively.")
 
-    if not scan_loaded_posts(browser, group_name, group_url, seen_posts):
+    opportunities_found = []
+
+    if not scan_loaded_posts(browser, group_name, group_url, seen_posts, opportunities_found):
         return {
             "success": False,
             "inactive": False,
             "activity": activity_info,
+            "opportunities": opportunities_found,
         }
 
     for scroll_number in range(1, SCROLLS_PER_GROUP + 1):
         print(f"[SCAN] Scroll {scroll_number}/{SCROLLS_PER_GROUP}")
         scroll_down(browser)
-        if not scan_loaded_posts(browser, group_name, group_url, seen_posts):
+        if not scan_loaded_posts(browser, group_name, group_url, seen_posts, opportunities_found):
             return {
                 "success": False,
                 "inactive": False,
                 "activity": activity_info,
+                "opportunities": opportunities_found,
             }
 
     return {
         "success": True,
         "inactive": False,
         "activity": activity_info,
+        "opportunities": opportunities_found,
     }
 
 
 def run_continuous_scanner(browser, start_time):
     seen_posts = load_seen_opportunity_keys()
+    lifecycle_manager = GroupLifecycleManager()
     group_index = 1
     group_failures = {}
 
@@ -279,6 +288,11 @@ def run_continuous_scanner(browser, start_time):
                     browser = restart_driver(browser)
                 except WebDriverException as restart_error:
                     print(f"[ERROR] Could not restart Chrome: {short_error(restart_error)}")
+
+        # Integration helper call: update group lifecycle stats & prune inactive groups after each scan
+        if success:
+            opportunities = scan_result.get("opportunities", [])
+            lifecycle_manager.on_group_scanned(current_group, opportunities)
 
         if success and scan_result["inactive"]:
             group_failures.pop(current_group, None)

@@ -140,20 +140,15 @@ def move_group_to_inactive(
             continue
 
         current_group = line.strip()
-        if current_group != group_url:
-            print("[ERROR] Group queue changed before inactive move.")
-            print(f"[QUEUE] Expected current group: {group_url}")
-            print(f"[QUEUE] Actual current group: {current_group}")
+        if current_group == group_url:
+            updated_queue = list(queue_lines)
+            updated_queue.pop(index)
+
+            if save_group_queue(updated_queue, group_list_file):
+                print("[QUEUE] Inactive group removed from active queue")
+                return True
+
             return False
 
-        updated_queue = list(queue_lines)
-        updated_queue.pop(index)
-
-        if save_group_queue(updated_queue, group_list_file):
-            print("[QUEUE] Inactive group removed from active queue")
-            return True
-
-        return False
-
-    print("[ERROR] Could not move inactive group because active queue is empty.")
+    print(f"[ERROR] Could not move inactive group {group_url} because it was not found in active queue.")
     return False
