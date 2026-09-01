@@ -13,6 +13,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from search_interested import group_lifecycle as _group_lifecycle
 from search_interested import group_queue as _group_queue
 from search_interested import results as _results
 from search_interested import settings as _settings
@@ -331,6 +332,10 @@ def run_continuous_scanner(*args, **kwargs):
 
 def get_group_name(*args, **kwargs):
     return _call(_scanner_engine, "get_group_name", *args, **kwargs)
+
+
+def GroupLifecycleManager(*args, **kwargs):
+    return _group_lifecycle.GroupLifecycleManager(*args, **kwargs)
 
 
 def main():
