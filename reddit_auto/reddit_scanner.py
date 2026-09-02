@@ -32,6 +32,7 @@ from search_interested.results import (
 )
 from search_interested.settings import (
     REDDIT_HOME,
+    REDDIT_IMMEDIATE_ALERT_SECONDS,
     REDDIT_MAX_FRESHNESS_SECONDS,
     REDDIT_MAX_RESULTS_PER_QUERY,
     REDDIT_SCAN_INTERVAL_SECONDS,
@@ -296,12 +297,71 @@ class RedditScanner:
         client: RedditClient | None = None,
         poll_interval: int = REDDIT_SCAN_INTERVAL_SECONDS,
         max_age_seconds: int = REDDIT_MAX_FRESHNESS_SECONDS,
+        immediate_alert_seconds: int = REDDIT_IMMEDIATE_ALERT_SECONDS,
     ):
         self.browser = browser
         self.client = client or RedditClient(browser=browser)
         self.poll_interval = poll_interval
         self.max_age_seconds = max_age_seconds
+        self.immediate_alert_seconds = immediate_alert_seconds
         self.seen_keys = load_seen_opportunity_keys()
+        self.alerted_freshness_keys: set[str] = set()
+
+    def check_immediate_freshness(self, normalized_item: dict) -> bool:
+        """Check item age and trigger immediate real-time beep if within REDDIT_IMMEDIATE_ALERT_SECONDS."""
+        opportunity_key = normalized_item.get("opportunity_key")
+        if not opportunity_key or opportunity_key in self.alerted_freshness_keys:
+            return False
+
+        confidence = normalized_item.get("timestamp_confidence", "NONE")
+        if confidence in {"NONE", "UNKNOWN"}:
+            return False
+
+        age_seconds = normalized_item.get("age_seconds")
+        if age_seconds is None or age_seconds < 0:
+            return False
+
+        if age_seconds <= self.immediate_alert_seconds:
+            self.alerted_freshness_keys.add(opportunity_key)
+
+            content_type = normalized_item.get("content_type", "POST")
+            header_tag = "[REDDIT NEW POST]" if content_type == "POST" else "[REDDIT NEW COMMENT]"
+            url_label = "Post URL" if content_type == "POST" else "Comment URL"
+            author_str = normalized_item.get("author", "UNKNOWN")
+            if author_str and not author_str.startswith("u/"):
+                author_display = f"u/{author_str}"
+            else:
+                author_display = author_str or "UNKNOWN"
+
+            latency_sec = normalized_item.get("detection_latency_seconds")
+            latency_str = f"{latency_sec:.1f} seconds" if isinstance(latency_sec, (int, float)) else f"{int(age_seconds)} seconds"
+            age_str = f"{int(age_seconds)} seconds"
+
+            created_time_str = normalized_item.get("timestamp_raw") or "UNKNOWN"
+
+            print("=" * 50)
+            print(header_tag)
+            print("=" * 50)
+            print(f"Subreddit:\n    {normalized_item.get('community_name', 'UNKNOWN')}")
+            print(f"Author:\n    {author_display}")
+            if content_type == "POST":
+                print(f"Title:\n    {normalized_item.get('title', '')}")
+            print(f"Created:\n    {created_time_str}")
+            print(f"Age:\n    {age_str}")
+            print(f"Detection Latency:\n    {latency_str}")
+            print(f"{url_label}:\n    {normalized_item.get('content_url') or normalized_item.get('source_url')}")
+            print(f"Text:\n    {normalized_item.get('body') or normalized_item.get('content_text') or ''}")
+            print("=" * 50)
+
+            print("[REDDIT] IMMEDIATE FRESH ALERT")
+            print(f"[REDDIT] Age: {age_str}")
+            print(f"[REDDIT] Detection latency: {latency_str}")
+            print("[ALERT] REAL-TIME -> BEEP")
+
+            beep()
+            return True
+
+        return False
 
     def process_item(self, normalized_item: dict) -> dict | None:
         """Evaluate normalized post or comment item, save and alert immediately if fresh opportunity."""
@@ -358,6 +418,7 @@ class RedditScanner:
 
         for raw_post in raw_posts:
             normalized = normalize_reddit_post(raw_post, query=query, detected_at=detected_at)
+            self.check_immediate_freshness(normalized)
             opportunity = self.process_item(normalized)
             if opportunity:
                 discovered.append(opportunity)
@@ -371,6 +432,7 @@ class RedditScanner:
 
         for raw_comment in raw_comments:
             normalized = normalize_reddit_comment(raw_comment, query=query, detected_at=detected_at)
+            self.check_immediate_freshness(normalized)
             opportunity = self.process_item(normalized)
             if opportunity:
                 discovered.append(opportunity)
@@ -424,14 +486,16 @@ class RedditScanner:
 
         opportunities = []
 
-        # Process fresh posts
+        # Check immediate freshness and process posts
         for norm in normalized_posts:
+            self.check_immediate_freshness(norm)
             opp = self.process_item(norm)
             if opp:
                 opportunities.append(opp)
 
-        # Process fresh comments
+        # Check immediate freshness and process comments
         for norm in normalized_comments:
+            self.check_immediate_freshness(norm)
             opp = self.process_item(norm)
             if opp:
                 opportunities.append(opp)

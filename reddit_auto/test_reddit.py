@@ -257,20 +257,176 @@ def test_14_configuration_variables():
     assert REDDIT_SCAN_INTERVAL_SECONDS == 30
 
 
-def test_15_immediate_alert_behavior():
+def test_15_immediate_alert_cases_1_to_4_post_ages():
     now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60)
+
+    # Case 1: Post age = 10s -> beep
+    post10 = {"id": "p10", "title": "Random post title", "created_utc": now - 10}
+    norm10 = normalize_reddit_post(post10, detected_at=now)
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm10) is True
+        mock_beep.assert_called_once()
+
+    # Case 2: Post age = 59s -> beep
+    post59 = {"id": "p59", "title": "Random post title", "created_utc": now - 59}
+    norm59 = normalize_reddit_post(post59, detected_at=now)
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm59) is True
+        mock_beep.assert_called_once()
+
+    # Case 3: Post age = 60s -> beep
+    post60 = {"id": "p60", "title": "Random post title", "created_utc": now - 60}
+    norm60 = normalize_reddit_post(post60, detected_at=now)
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm60) is True
+        mock_beep.assert_called_once()
+
+    # Case 4: Post age = 61s -> no immediate freshness beep
+    post61 = {"id": "p61", "title": "Random post title", "created_utc": now - 61}
+    norm61 = normalize_reddit_post(post61, detected_at=now)
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm61) is False
+        mock_beep.assert_not_called()
+
+
+def test_16_immediate_alert_case_5_fresh_comment_old_parent():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60)
+
+    # Comment age = 20s, parent post age = 3 days -> beep
+    comment_20s = {
+        "id": "c20",
+        "body": "Just checking this out",
+        "created_utc": now - 20,
+    }
+    norm_c = normalize_reddit_comment(comment_20s, detected_at=now)
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm_c) is True
+        mock_beep.assert_called_once()
+
+
+def test_17_immediate_alert_case_6_post_age_5_minutes():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60, max_age_seconds=600)
+    scanner.seen_keys = set()
+
+    # Post age = 5 minutes (300s) -> no immediate freshness beep, still processed in 10-min window
     raw_post = {
-        "id": "immediate_1",
+        "id": "p300",
         "title": "Looking for a Python developer",
-        "selftext": "Urgent need for web scraper developer.",
-        "subreddit": "CryptoTradingBot",
-        "created_utc": now - 10,
+        "selftext": "Need Django web scraper build",
+        "created_utc": now - 300,
+    }
+    norm = normalize_reddit_post(raw_post, detected_at=now)
+
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm) is False
+        mock_beep.assert_not_called()
+
+    # Opportunity engine still processes it
+    with patch("reddit_auto.reddit_scanner.save_opportunity"), \
+         patch("reddit_auto.reddit_scanner.alert_opportunity"):
+        opp = scanner.process_item(norm)
+        assert opp is not None
+
+
+def test_18_immediate_alert_case_7_post_age_11_minutes():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60, max_age_seconds=600)
+
+    # Post age = 11 minutes (660s) -> stale, ignore
+    raw_post = {
+        "id": "p660",
+        "title": "Looking for a Python developer",
+        "selftext": "Need Django web scraper build",
+        "created_utc": now - 660,
+    }
+    norm = normalize_reddit_post(raw_post, detected_at=now)
+
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm) is False
+        mock_beep.assert_not_called()
+
+    opp = scanner.process_item(norm)
+    assert opp is None
+
+
+def test_19_immediate_alert_case_8_unknown_timestamp():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60)
+
+    raw_post = {
+        "id": "p_unk",
+        "title": "Post with unknown timestamp",
+        "created_utc": None,
+    }
+    norm = normalize_reddit_post(raw_post, detected_at=now)
+
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm) is False
+        mock_beep.assert_not_called()
+
+
+def test_20_immediate_alert_case_9_multiple_scans_deduplication():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60)
+
+    raw_post = {
+        "id": "p_dup_scan",
+        "title": "Some post title",
+        "created_utc": now - 15,
+    }
+    norm = normalize_reddit_post(raw_post, detected_at=now)
+
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm) is True
+        assert mock_beep.call_count == 1
+
+    # Second scan of same post
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        assert scanner.check_immediate_freshness(norm) is False
+        mock_beep.assert_not_called()
+
+
+def test_21_immediate_alert_case_10_no_opportunity_signal_fresh_post():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60)
+
+    # Post with no commercial/service/opportunity signals (e.g. just a general question or meme)
+    raw_post = {
+        "id": "p_no_opp",
+        "title": "What is your favorite color?",
+        "selftext": "Just asking random thoughts.",
+        "created_utc": now - 25,
     }
 
-    scanner = RedditScanner()
-    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep:
+        results = scanner.process_posts([raw_post])
+        # Immediate freshness alert triggers beep
+        mock_beep.assert_called_once()
+        # Opportunity engine rejects it (quality is WEAK/REJECT) so results list is empty
+        assert len(results) == 0
+
+
+def test_22_immediate_alert_case_11_strong_opportunity_fresh_post():
+    now = time.time()
+    scanner = RedditScanner(immediate_alert_seconds=60)
+
+    raw_post = {
+        "id": "p_strong_opp",
+        "title": "Looking to hire a Python developer for trading bot",
+        "selftext": "I am paying $1000 for someone to build a crypto trading bot immediately.",
+        "created_utc": now - 20,
+    }
+
+    with patch("reddit_auto.reddit_scanner.beep") as mock_beep, \
+         patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
          patch("reddit_auto.reddit_scanner.alert_opportunity") as mock_alert:
-        res = scanner.process_posts([raw_post])
-        assert len(res) == 1
-        mock_save.assert_called_once()
+        results = scanner.process_posts([raw_post])
+        # Freshness beep triggered
+        mock_beep.assert_called_once()
+        # Opportunity alert triggered
         mock_alert.assert_called_once()
+        mock_save.assert_called_once()
+        assert len(results) == 1
