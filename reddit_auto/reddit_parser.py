@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 
-from .reddit_urls import build_reddit_permalink, clean_reddit_url
-from .timestamps import build_timestamp_info, classify_freshness
-from .text_utils import normalize_space
+from reddit_auto.reddit_urls import build_reddit_permalink, clean_reddit_url
+from search_interested.timestamps import build_timestamp_info, classify_freshness
+from search_interested.text_utils import normalize_space
 
 
 def normalize_reddit_post(post_data: dict, query: str = "", detected_at: float | None = None) -> dict:

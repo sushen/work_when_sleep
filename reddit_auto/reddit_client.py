@@ -8,13 +8,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from .settings import (
+from search_interested.settings import (
     REDDIT_MAX_RESULTS_PER_QUERY,
     REDDIT_REQUEST_TIMEOUT_SECONDS,
     REDDIT_RETRY_DELAY_SECONDS,
     REDDIT_USER_AGENT,
 )
-from .text_utils import short_error
+from search_interested.text_utils import short_error
 
 
 class RedditClient:

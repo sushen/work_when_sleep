@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .settings import REDDIT_QUERIES_FILE
-from .text_utils import normalize_space
+from search_interested.settings import REDDIT_QUERIES_FILE
+from search_interested.text_utils import normalize_space
 
 
 def load_reddit_queries(queries_file: Path | str | None = None) -> list[str]:

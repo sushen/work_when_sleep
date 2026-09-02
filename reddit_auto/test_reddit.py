@@ -8,12 +8,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from reddit_auto.reddit_client import RedditClient
+from reddit_auto.reddit_parser import normalize_reddit_post
+from reddit_auto.reddit_query_queue import RedditQueryQueue, load_reddit_queries
+from reddit_auto.reddit_scanner import RedditScanner
+from reddit_auto.reddit_urls import build_reddit_permalink, clean_reddit_url
 from search_interested.opportunity_engine import analyze_opportunity
-from search_interested.reddit_client import RedditClient
-from search_interested.reddit_parser import normalize_reddit_post
-from search_interested.reddit_query_queue import RedditQueryQueue, load_reddit_queries
-from search_interested.reddit_scanner import RedditScanner
-from search_interested.reddit_urls import build_reddit_permalink, clean_reddit_url
 from search_interested.results import (
     build_opportunity,
     format_opportunity_record,
@@ -99,7 +99,7 @@ def test_5_duplicate_reddit_posts_discovered_by_two_queries(tmp_path):
     queue = RedditQueryQueue(queries_file=queue_file)
     scanner = RedditScanner(client=mock_client, query_queue=queue)
 
-    with patch("search_interested.reddit_scanner.save_opportunity") as mock_save:
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save:
         # Run query 1
         res1 = scanner.process_query("looking for developer")
         assert len(res1) == 1
@@ -135,7 +135,7 @@ def test_7_old_post_rejection(tmp_path):
     }]
 
     scanner = RedditScanner(client=mock_client, max_age_seconds=86400)
-    with patch("search_interested.reddit_scanner.save_opportunity") as mock_save:
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save:
         results = scanner.process_query("looking for developer")
         assert len(results) == 0
         mock_save.assert_not_called()
@@ -150,7 +150,7 @@ def test_8_unknown_timestamp_behavior(tmp_path):
     }]
 
     scanner = RedditScanner(client=mock_client)
-    with patch("search_interested.reddit_scanner.save_opportunity") as mock_save:
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save:
         results = scanner.process_query("looking for developer")
         assert len(results) == 0
         mock_save.assert_not_called()

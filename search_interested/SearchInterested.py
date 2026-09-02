@@ -136,7 +136,7 @@ def _scanner_engine():
 
 
 def _reddit_scanner():
-    from search_interested import reddit_scanner
+    from reddit_auto import reddit_scanner
 
     return reddit_scanner
 

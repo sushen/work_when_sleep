@@ -4,23 +4,23 @@ from __future__ import annotations
 
 import time
 
-from .opportunity_engine import analyze_opportunity, is_fresh_opportunity_timestamp
-from .reddit_client import RedditClient
-from .reddit_parser import normalize_reddit_post
-from .reddit_query_queue import RedditQueryQueue
-from .results import (
+from reddit_auto.reddit_client import RedditClient
+from reddit_auto.reddit_parser import normalize_reddit_post
+from reddit_auto.reddit_query_queue import RedditQueryQueue
+from search_interested.opportunity_engine import analyze_opportunity, is_fresh_opportunity_timestamp
+from search_interested.results import (
     alert_opportunity,
     build_opportunity,
     display_opportunity,
     load_seen_opportunity_keys,
     save_opportunity,
 )
-from .settings import (
+from search_interested.settings import (
     REDDIT_MAX_OPPORTUNITY_AGE_SECONDS,
     REDDIT_MAX_RESULTS_PER_QUERY,
     REDDIT_POLL_INTERVAL_SECONDS,
 )
-from .text_utils import print_running_time
+from search_interested.text_utils import print_running_time
 
 
 class RedditScanner:
