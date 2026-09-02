@@ -30,37 +30,64 @@ def build_post_key(group_url, post_url, post_text, timestamp_raw):
 
 
 def build_opportunity_key(
-    group_url,
-    content_url,
-    content_type,
-    content_text,
-    timestamp_raw,
+    group_url=None,
+    content_url=None,
+    content_type="POST",
+    content_text="",
+    timestamp_raw=None,
+    source="facebook",
+    post_id=None,
 ):
+    if source == "reddit" and post_id:
+        return f"reddit:{post_id}"
+
     if content_url:
         return f"url:{content_url}"
 
     fallback = "|".join(
         [
-            normalize_space(group_url).lower(),
-            normalize_space(content_type).lower(),
+            normalize_space(source or "facebook").lower(),
+            normalize_space(group_url or "").lower(),
+            normalize_space(content_type or "").lower(),
             normalize_space(timestamp_raw or "").lower(),
-            normalize_space(content_text).lower()[:1000],
+            normalize_space(content_text or "").lower()[:1000],
         ]
     )
     return "hash:" + hashlib.sha1(fallback.encode("utf-8")).hexdigest()
 
 
 def build_opportunity(
-    group_name,
-    group_url,
-    content_type,
-    author,
-    content_text,
-    content_url,
-    timestamp_info,
-    opportunity_analysis,
+    group_name=None,
+    group_url=None,
+    content_type="POST",
+    author="UNKNOWN",
+    content_text="",
+    content_url=None,
+    timestamp_info=None,
+    opportunity_analysis=None,
     opportunity_key=None,
+    source="facebook",
+    subreddit=None,
+    title=None,
+    detection_latency_seconds=None,
+    query=None,
+    post_id=None,
 ):
+    if timestamp_info is None:
+        timestamp_info = build_timestamp_info(
+            raw=None,
+            age_seconds=None,
+            confidence="NONE",
+            source="unknown",
+        )
+
+    if opportunity_analysis is None:
+        opportunity_analysis = {
+            "matched_signals": [],
+            "score": 0,
+            "quality": "WEAK",
+        }
+
     if opportunity_key is None:
         opportunity_key = build_opportunity_key(
             group_url=group_url,
@@ -68,17 +95,24 @@ def build_opportunity(
             content_type=content_type,
             content_text=content_text,
             timestamp_raw=timestamp_info["raw"],
+            source=source,
+            post_id=post_id,
         )
 
+    parent_url = extract_parent_post_url(content_url) if source == "facebook" else None
+
     return {
+        "source": source,
         "detection_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "group_name": group_name,
-        "group_url": group_url,
+        "group_name": group_name or subreddit or "UNKNOWN",
+        "group_url": group_url or content_url,
+        "subreddit": subreddit,
         "content_type": content_type,
         "author": author or "UNKNOWN",
+        "title": title,
         "content_text": content_text,
         "content_url": content_url,
-        "parent_post_url": extract_parent_post_url(content_url),
+        "parent_post_url": parent_url,
         "opportunity_key": opportunity_key,
         "matched_signals": opportunity_analysis["matched_signals"],
         "opportunity_score": opportunity_analysis["score"],
@@ -88,7 +122,9 @@ def build_opportunity(
         "timestamp_source": timestamp_info["source"],
         "timestamp_warning": timestamp_info["warning"],
         "content_age_seconds": timestamp_info["age_seconds"],
+        "detection_latency_seconds": detection_latency_seconds,
         "freshness_level": timestamp_info["freshness"],
+        "query": query,
     }
 
 
@@ -130,46 +166,48 @@ def format_opportunity_record(opportunity, max_text_chars=MAX_POST_TEXT_DISPLAY_
         f"    {signal}" for signal in opportunity["matched_signals"]
     )
 
+    source = opportunity.get("source", "facebook")
+    title_section = ""
+    if opportunity.get("title"):
+        title_section = f"Title:\n    {opportunity['title']}\n\n"
+
+    latency_str = "UNKNOWN"
+    if opportunity.get("detection_latency_seconds") is not None:
+        latency_str = f"{opportunity['detection_latency_seconds']:.1f} seconds"
+
+    if source == "reddit":
+        header_name = "REDDIT OPPORTUNITY FOUND"
+        group_label = "Subreddit:"
+        group_val = opportunity.get("subreddit") or opportunity.get("group_name") or "UNKNOWN"
+        group_url_line = ""
+    else:
+        header_name = "OPPORTUNITY FOUND"
+        group_label = "Group:"
+        group_val = opportunity.get("group_name") or "UNKNOWN"
+        group_url_line = f"Group URL:\n    {opportunity.get('group_url') or 'UNKNOWN'}\n\n"
+
     return (
         f"{separator}\n"
-        "OPPORTUNITY FOUND\n"
+        f"{header_name}\n"
         f"{separator}\n\n"
-        "Detected:\n"
-        f"    {opportunity['detection_time']}\n\n"
-        "Group:\n"
-        f"    {opportunity['group_name']}\n\n"
-        "Group URL:\n"
-        f"    {opportunity['group_url']}\n\n"
-        "Content:\n"
-        f"    {opportunity['content_type']}\n\n"
-        "Author:\n"
-        f"    {opportunity['author']}\n\n"
-        "URL:\n"
-        f"    {opportunity['content_url'] or 'UNKNOWN'}\n\n"
-        "Parent Post URL:\n"
-        f"    {opportunity['parent_post_url'] or 'UNKNOWN'}\n\n"
-        "Opportunity Key:\n"
-        f"    {opportunity['opportunity_key']}\n\n"
-        "Signals:\n"
-        f"{matched_signals or '    UNKNOWN'}\n\n"
-        "Score:\n"
-        f"    {opportunity['opportunity_score']}\n\n"
-        "Quality:\n"
-        f"    {opportunity['opportunity_quality']}\n\n"
-        "Facebook Timestamp:\n"
-        f"    {opportunity['timestamp_raw'] or 'UNKNOWN'}\n\n"
-        "Timestamp Confidence:\n"
-        f"    {opportunity['timestamp_confidence']}\n\n"
-        "Timestamp Source:\n"
-        f"    {opportunity['timestamp_source']}\n\n"
-        "Timestamp Warning:\n"
-        f"    {opportunity['timestamp_warning'] or 'NONE'}\n\n"
-        "Age:\n"
-        f"    {format_age(opportunity['content_age_seconds'])}\n\n"
-        "Freshness:\n"
-        f"    {opportunity['freshness_level']}\n\n"
-        "Text:\n"
-        f"{indent_text(limit_text(opportunity['content_text'], max_text_chars))}\n\n"
+        f"Source:\n    {source}\n\n"
+        f"Detected:\n    {opportunity['detection_time']}\n\n"
+        f"{group_label}\n    {group_val}\n\n"
+        f"{group_url_line}"
+        f"Content:\n    {opportunity['content_type']}\n\n"
+        f"Author:\n    {opportunity['author']}\n\n"
+        f"{title_section}"
+        f"URL:\n    {opportunity['content_url'] or 'UNKNOWN'}\n\n"
+        f"Opportunity Key:\n    {opportunity['opportunity_key']}\n\n"
+        f"Signals:\n{matched_signals or '    UNKNOWN'}\n\n"
+        f"Score:\n    {opportunity['opportunity_score']}\n\n"
+        f"Quality:\n    {opportunity['opportunity_quality']}\n\n"
+        f"Creation Timestamp:\n    {opportunity['timestamp_raw'] or 'UNKNOWN'}\n\n"
+        f"Timestamp Confidence:\n    {opportunity['timestamp_confidence']}\n\n"
+        f"Age:\n    {format_age(opportunity['content_age_seconds'])}\n\n"
+        f"Detection Latency:\n    {latency_str}\n\n"
+        f"Freshness:\n    {opportunity['freshness_level']}\n\n"
+        f"Text:\n{indent_text(limit_text(opportunity['content_text'], max_text_chars))}\n\n"
         f"{separator}\n\n"
     )
 
@@ -213,18 +251,30 @@ def beep_count_for_freshness(freshness_level):
 
 
 def display_opportunity(opportunity):
-    print("[MATCH] Opportunity found")
-    print(f"[MATCH] Group: {opportunity['group_name']}")
-    print(f"[MATCH] Content: {opportunity['content_type']}")
-    print(f"[MATCH] Author: {opportunity['author']}")
-    print(f"[MATCH] Quality: {opportunity['opportunity_quality']}")
-    print(f"[MATCH] Score: {opportunity['opportunity_score']}")
-    print(f"[MATCH] Signals: {', '.join(opportunity['matched_signals'])}")
-    print(f"[TIME] Age: {format_age(opportunity['content_age_seconds'])}")
-    print(f"[MATCH] Freshness: {opportunity['freshness_level']}")
-    print(f"[MATCH] URL: {opportunity['content_url'] or 'UNKNOWN'}")
-    print(f"[MATCH] Text: {first_line(opportunity['content_text'])}")
-    print("[SCAN] Continuing...")
+    source = opportunity.get("source", "facebook").upper()
+    print(f"==================================================")
+    print(f"{source} OPPORTUNITY")
+    print(f"==================================================")
+    print(f"Quality: {opportunity['opportunity_quality']}")
+    print(f"Score: {opportunity['opportunity_score']}")
+
+    if opportunity.get("source") == "reddit" or opportunity.get("subreddit"):
+        print(f"Subreddit: {opportunity.get('subreddit') or opportunity['group_name']}")
+    else:
+        print(f"Group: {opportunity['group_name']}")
+
+    print(f"Author: {opportunity['author']}")
+    print(f"Post age: {format_age(opportunity['content_age_seconds'])}")
+
+    if opportunity.get("detection_latency_seconds") is not None:
+        print(f"Detection latency: {opportunity['detection_latency_seconds']:.1f} seconds")
+
+    if opportunity.get("title"):
+        print(f"\nTitle:\n{opportunity['title']}")
+
+    print(f"\nMatched signals:\n{', '.join(opportunity['matched_signals'])}")
+    print(f"\nURL:\n{opportunity['content_url'] or 'UNKNOWN'}")
+    print(f"==================================================\n")
 
 
 def display_match(match_info):
@@ -267,9 +317,12 @@ def load_seen_opportunity_keys(results_file=RESULTS_FILE):
         seen_keys.add(key.strip())
 
     for url in re.findall(r"(?m)^\s*(?:Post URL|URL):\s*\n\s*(https?://\S+)", text):
-        cleaned_url = clean_facebook_url(url)
-        if cleaned_url and cleaned_url.upper() != "UNKNOWN":
-            seen_keys.add(f"url:{cleaned_url}")
+        if "facebook.com" in url:
+            cleaned_url = clean_facebook_url(url)
+            if cleaned_url and cleaned_url.upper() != "UNKNOWN":
+                seen_keys.add(f"url:{cleaned_url}")
+        else:
+            seen_keys.add(f"url:{url}")
 
     if seen_keys:
         print(f"[DUPLICATE] Loaded {len(seen_keys)} saved opportunity keys")

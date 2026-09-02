@@ -135,6 +135,12 @@ def _scanner_engine():
     return scanner_engine
 
 
+def _reddit_scanner():
+    from search_interested import reddit_scanner
+
+    return reddit_scanner
+
+
 def _call(module_factory, function_name, *args, **kwargs):
     return getattr(module_factory(), function_name)(*args, **kwargs)
 
@@ -336,6 +342,10 @@ def get_group_name(*args, **kwargs):
 
 def GroupLifecycleManager(*args, **kwargs):
     return _group_lifecycle.GroupLifecycleManager(*args, **kwargs)
+
+
+def main_reddit():
+    return _call(_reddit_scanner, "main")
 
 
 def main():
