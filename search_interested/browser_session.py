@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 
 from selenium import webdriver
 from selenium.common.exceptions import (
@@ -49,8 +50,28 @@ def create_chrome_options():
 
 
 def create_driver():
-    chrome_service = Service(str(CHROME_DRIVER_PATH))
-    browser = webdriver.Chrome(service=chrome_service, options=create_chrome_options())
+    options = create_chrome_options()
+
+    if CHROME_DRIVER_PATH.exists():
+        try:
+            chrome_service = Service(str(CHROME_DRIVER_PATH))
+            browser = webdriver.Chrome(service=chrome_service, options=options)
+            browser.implicitly_wait(3)
+            return browser
+        except Exception:
+            pass
+
+    driver_path = shutil.which("chromedriver")
+    if driver_path:
+        chrome_service = Service(driver_path)
+    else:
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            chrome_service = Service(ChromeDriverManager().install())
+        except Exception:
+            chrome_service = Service()
+
+    browser = webdriver.Chrome(service=chrome_service, options=options)
     browser.implicitly_wait(3)
     return browser
 

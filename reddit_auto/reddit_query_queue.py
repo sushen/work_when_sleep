@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import quote
 
-from search_interested.settings import REDDIT_QUERIES_FILE
+from search_interested.settings import REDDIT_QUERIES_FILE, REDDIT_SUBREDDIT_LIST_FILE
 from search_interested.text_utils import normalize_space
 
 
@@ -40,6 +41,72 @@ def load_reddit_queries(queries_file: Path | str | None = None) -> list[str]:
 
     print(f"[REDDIT_QUEUE] Loaded {len(queries)} active queries from {queries_path.name}")
     return queries
+
+
+def load_subreddit_urls(list_file: Path | str | None = None) -> list[str]:
+    """Load, comment-strip, blank-line filter, and deduplicate subreddit URLs from file."""
+    if list_file is None:
+        list_file = REDDIT_SUBREDDIT_LIST_FILE
+
+    list_path = Path(list_file)
+    if not list_path.exists():
+        print(f"[REDDIT_QUEUE] Subreddit list file not found: {list_path}")
+        return []
+
+    try:
+        content = list_path.read_text(encoding="utf-8")
+    except OSError as error:
+        print(f"[REDDIT_QUEUE] Error reading subreddit list file: {error}")
+        return []
+
+    urls = []
+    seen = set()
+
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        normalized = normalize_space(line)
+        if not (normalized.startswith("http://") or normalized.startswith("https://")):
+            if normalized.startswith("r/"):
+                normalized = f"https://www.reddit.com/{normalized}/"
+            else:
+                normalized = f"https://www.reddit.com/r/{normalized}/"
+
+        lowered = normalized.lower()
+        if lowered not in seen:
+            seen.add(lowered)
+            urls.append(normalized)
+
+    print(f"[REDDIT_QUEUE] Loaded {len(urls)} subreddit URLs from {list_path.name}")
+    return urls
+
+
+def load_reddit_urls(
+    subreddits_file: Path | str | None = None,
+    queries_file: Path | str | None = None,
+) -> list[str]:
+    """Load all target Reddit URLs: subreddit list URLs first, followed by query search URLs."""
+    subreddit_urls = load_subreddit_urls(subreddits_file)
+    queries = load_reddit_queries(queries_file)
+
+    query_urls = []
+    for query in queries:
+        encoded = quote(query)
+        search_url = f"https://www.reddit.com/search/?q={encoded}&sort=new"
+        query_urls.append(search_url)
+
+    combined_urls = []
+    seen = set()
+    for url in subreddit_urls + query_urls:
+        lowered = url.lower()
+        if lowered not in seen:
+            seen.add(lowered)
+            combined_urls.append(url)
+
+    print(f"[REDDIT_QUEUE] Total loaded Reddit target URLs: {len(combined_urls)}")
+    return combined_urls
 
 
 class RedditQueryQueue:
