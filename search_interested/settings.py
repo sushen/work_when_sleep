@@ -99,7 +99,9 @@ TRACKING_QUERY_PARAMS = {
 
 # Reddit integration configuration
 REDDIT_ENABLED = True
+REDDIT_HOME = "https://www.reddit.com"
 REDDIT_QUERIES_FILE = PROJECT_DIRECTORY / "reddit_auto" / "reddit_queries.txt"
+REDDIT_SUBREDDIT_LIST_FILE = PROJECT_DIRECTORY / "reddit_auto" / "sub_raddit_list"
 REDDIT_POLL_INTERVAL_SECONDS = 10
 REDDIT_MAX_RESULTS_PER_QUERY = 25
 REDDIT_MAX_OPPORTUNITY_AGE_SECONDS = 24 * 60 * 60

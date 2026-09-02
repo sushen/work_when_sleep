@@ -284,3 +284,54 @@ def test_15_search_interested_entrypoint():
     with patch("reddit_auto.SearchInterested.scanner_main") as mock_main:
         SearchInterested.main()
         mock_main.assert_called_once()
+
+
+def test_16_subreddit_list_loading(tmp_path):
+    sub_file = tmp_path / "sub_raddit_list"
+    sub_file.write_text(
+        "# Subreddit list\nhttps://www.reddit.com/r/CryptoTradingBot/\nr/algotrading\n\nforhire\n",
+        encoding="utf-8",
+    )
+    query_file = tmp_path / "queries.txt"
+    query_file.write_text("looking for developer\n", encoding="utf-8")
+
+    from reddit_auto.reddit_query_queue import load_reddit_urls, load_subreddit_urls
+
+    sub_urls = load_subreddit_urls(list_file=sub_file)
+    assert len(sub_urls) == 3
+    assert "https://www.reddit.com/r/CryptoTradingBot/" in sub_urls
+    assert "https://www.reddit.com/r/algotrading/" in sub_urls
+    assert "https://www.reddit.com/r/forhire/" in sub_urls
+
+    all_urls = load_reddit_urls(subreddits_file=sub_file, queries_file=query_file)
+    assert len(all_urls) == 4
+    assert any("search/?q=looking" in url for url in all_urls)
+
+
+def test_17_extract_reddit_posts_from_browser_dom():
+    from reddit_auto.reddit_scanner import extract_reddit_posts_from_browser
+
+    mock_browser = MagicMock()
+    mock_body = MagicMock()
+    mock_body.text = "<html>Reddit webpage</html>"
+    mock_browser.find_element.return_value = mock_body
+
+    mock_post_el = MagicMock()
+    mock_post_el.get_attribute.side_effect = lambda attr: {
+        "id": "post_dom_123",
+        "post-title": "Looking for a Python developer",
+        "author": "dev_buyer",
+        "subreddit-prefixed-name": "r/forhire",
+        "permalink": "/r/forhire/comments/post_dom_123/",
+        "created-timestamp": str(time.time() - 30),
+    }.get(attr, "")
+    mock_post_el.find_elements.return_value = []
+
+    mock_browser.find_elements.return_value = [mock_post_el]
+
+    posts = extract_reddit_posts_from_browser(mock_browser)
+    assert len(posts) == 1
+    assert posts[0]["id"] == "post_dom_123"
+    assert posts[0]["title"] == "Looking for a Python developer"
+    assert posts[0]["author"] == "dev_buyer"
+    assert posts[0]["url"] == "https://www.reddit.com/r/forhire/comments/post_dom_123/"
