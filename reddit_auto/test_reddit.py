@@ -262,3 +262,25 @@ def test_14_rate_limit_and_error_recovery():
         posts = client.search_newest("looking for programmer")
         assert len(posts) == 1
         assert posts[0]["id"] == "p1"
+
+
+def test_15_search_interested_entrypoint():
+    from reddit_auto import SearchInterested
+
+    assert hasattr(SearchInterested, "RedditScanner")
+    assert hasattr(SearchInterested, "RedditClient")
+    assert hasattr(SearchInterested, "RedditQueryQueue")
+    assert hasattr(SearchInterested, "scan_query")
+    assert hasattr(SearchInterested, "run_continuous_scanner")
+
+    mock_scanner = MagicMock()
+    mock_scanner.process_query.return_value = [{"post_id": "test_15"}]
+
+    res = SearchInterested.scan_query("looking for developer", scanner=mock_scanner)
+    assert len(res) == 1
+    assert res[0]["post_id"] == "test_15"
+    mock_scanner.process_query.assert_called_once_with("looking for developer")
+
+    with patch("reddit_auto.SearchInterested.scanner_main") as mock_main:
+        SearchInterested.main()
+        mock_main.assert_called_once()
