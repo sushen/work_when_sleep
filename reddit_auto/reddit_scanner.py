@@ -1,24 +1,28 @@
-"""Continuous discovery scanner for Reddit service/business opportunities."""
+"""Continuous real-time monitoring scanner for Reddit service/business opportunities."""
 
 from __future__ import annotations
 
 import json
 import time
+from typing import Sequence
 from urllib.parse import quote
 
 from selenium.webdriver.common.by import By
 
-from reddit_auto.reddit_client import RedditClient, extract_posts_from_json
-from reddit_auto.reddit_parser import normalize_reddit_post
-from reddit_auto.reddit_query_queue import RedditQueryQueue, load_reddit_urls
+from reddit_auto.reddit_client import RedditClient, extract_comments_from_json, extract_posts_from_json
+from reddit_auto.reddit_parser import (
+    extract_subreddit_name,
+    normalize_reddit_comment,
+    normalize_reddit_post,
+)
+from reddit_auto.reddit_query_queue import load_subreddit_urls
 from reddit_auto.reddit_urls import build_reddit_permalink
 from search_interested.browser_session import (
     create_driver,
     wait_for_page_ready,
 )
-from search_interested.facebook_dom import scroll_down
 from search_interested.notifier import beep
-from search_interested.opportunity_engine import analyze_opportunity, is_fresh_opportunity_timestamp
+from search_interested.opportunity_engine import analyze_opportunity
 from search_interested.results import (
     alert_opportunity,
     build_opportunity,
@@ -28,38 +32,31 @@ from search_interested.results import (
 )
 from search_interested.settings import (
     REDDIT_HOME,
-    REDDIT_MAX_OPPORTUNITY_AGE_SECONDS,
+    REDDIT_MAX_FRESHNESS_SECONDS,
     REDDIT_MAX_RESULTS_PER_QUERY,
-    REDDIT_POLL_INTERVAL_SECONDS,
+    REDDIT_SCAN_INTERVAL_SECONDS,
 )
 from search_interested.text_utils import print_running_time, short_error
 
 
 def login_if_needed_reddit(browser, timeout: int = 8) -> None:
-    """Check if Reddit requires login or network verification and pause for user action if needed."""
+    """Open Reddit and pause for manual user login confirmation."""
+    if browser is None:
+        return
+
     try:
         browser.get(REDDIT_HOME)
         wait_for_page_ready(browser, timeout=timeout)
     except Exception as error:
         print(f"[REDDIT_LOGIN] Error loading Reddit homepage: {short_error(error)}")
-        return
 
-    page_text = ""
+    print("[REDDIT_LOGIN] Reddit browser window opened.")
+    print("[REDDIT_LOGIN] Please log in manually if required.")
+    input("[PAUSED] Once manual login is complete, press Enter to continue scanning: ")
     try:
-        body = browser.find_element(By.TAG_NAME, "body")
-        page_text = body.text.lower()
+        wait_for_page_ready(browser, timeout=timeout)
     except Exception:
         pass
-
-    if (
-        "blocked by network security" in page_text
-        or "log in to your reddit account" in page_text
-        or "use your developer token" in page_text
-    ):
-        print("[REDDIT_LOGIN] Reddit requires user login or network security check.")
-        print("[REDDIT_LOGIN] Please log in to Reddit in the opened Chrome browser window.")
-        input("[PAUSED] Once logged in to Reddit in Chrome, press Enter to continue: ")
-        wait_for_page_ready(browser)
 
 
 def _extract_element_text_by_xpath(element, xpath: str) -> str:
@@ -87,13 +84,13 @@ def _extract_attribute_by_xpath(element, xpath: str, attr: str) -> str:
 
 
 def extract_reddit_posts_from_browser(browser, query: str = "", url: str = "") -> list[dict]:
-    """Extract raw post dictionaries from the active browser page via JSON text or DOM elements."""
+    """Extract raw post dictionaries from active browser page via JSON text or DOM elements."""
     posts = []
 
     # 1. If browser is displaying a raw JSON response body
     try:
         body_text = browser.find_element(By.TAG_NAME, "body").text.strip()
-        if body_text.startswith("{") and body_text.endswith("}"):
+        if body_text.startswith("{") or body_text.startswith("["):
             parsed = json.loads(body_text)
             extracted = extract_posts_from_json(parsed)
             if extracted:
@@ -107,8 +104,7 @@ def extract_reddit_posts_from_browser(browser, query: str = "", url: str = "") -
         "//shreddit-post | "
         "//div[@data-testid='post-container'] | "
         "//article | "
-        "//div[contains(@class, 'thing')] | "
-        "//a[contains(@href, '/comments/')]/ancestor::div[1]",
+        "//div[contains(@class, 'thing') and contains(@class, 'link')]",
     )
 
     seen_ids = set()
@@ -172,9 +168,6 @@ def extract_reddit_posts_from_browser(browser, query: str = "", url: str = "") -
                 except ValueError:
                     pass
 
-            if created_utc is None:
-                created_utc = time.time()
-
             if not post_id and permalink:
                 post_id = permalink.split("/comments/")[1].split("/")[0] if "/comments/" in permalink else permalink
 
@@ -207,145 +200,276 @@ def extract_reddit_posts_from_browser(browser, query: str = "", url: str = "") -
     return posts
 
 
+def extract_reddit_comments_from_browser(browser, query: str = "", url: str = "") -> list[dict]:
+    """Extract raw comment dictionaries from active browser page via JSON text or DOM elements."""
+    comments = []
+
+    # 1. If browser is displaying a raw JSON response body
+    try:
+        body_text = browser.find_element(By.TAG_NAME, "body").text.strip()
+        if body_text.startswith("{") or body_text.startswith("["):
+            parsed = json.loads(body_text)
+            extracted = extract_comments_from_json(parsed)
+            if extracted:
+                return extracted
+    except Exception:
+        pass
+
+    # 2. Extract from DOM comment elements
+    comment_elements = browser.find_elements(
+        By.XPATH,
+        "//shreddit-comment | "
+        "//div[contains(@class, 'thing') and contains(@class, 'comment')]",
+    )
+
+    seen_ids = set()
+
+    for element in comment_elements:
+        try:
+            comment_id = (
+                element.get_attribute("id")
+                or element.get_attribute("data-fullname")
+                or ""
+            ).strip()
+
+            author = (
+                element.get_attribute("author")
+                or _extract_element_text_by_xpath(element, ".//a[contains(@href, '/user/')]")
+                or "UNKNOWN"
+            )
+
+            subreddit = element.get_attribute("subreddit-prefixed-name") or ""
+
+            permalink = element.get_attribute("permalink") or ""
+
+            created_utc = None
+            raw_ts = (
+                element.get_attribute("created-timestamp")
+                or element.get_attribute("data-timestamp")
+            )
+
+            if raw_ts:
+                try:
+                    val = float(raw_ts)
+                    if val > 1e11:
+                        val = val / 1000.0
+                    created_utc = val
+                except ValueError:
+                    pass
+
+            body = _extract_element_text_by_xpath(
+                element,
+                ".//div[@slot='comment'] | .//div[contains(@class, 'usertext-body')] | .//p",
+            )
+            if not body and element.text:
+                body = element.text
+
+            if not body or len(body) < 2:
+                continue
+
+            if comment_id in seen_ids:
+                continue
+            seen_ids.add(comment_id)
+
+            comment_data = {
+                "id": comment_id,
+                "body": body,
+                "author": author,
+                "subreddit": subreddit,
+                "permalink": permalink,
+                "created_utc": created_utc,
+                "url": build_reddit_permalink(permalink),
+            }
+            comments.append(comment_data)
+        except Exception as error:
+            print(f"[REDDIT] Error parsing DOM comment element: {error}")
+
+    return comments
+
+
 class RedditScanner:
-    """Orchestrates query rotation, browser navigation, fetching, normalization, opportunity scoring, alerting, and persistence."""
+    """Monitors fixed watchlist of subreddits in real-time for new posts and comments."""
 
     def __init__(
         self,
         browser=None,
         client: RedditClient | None = None,
-        query_queue: RedditQueryQueue | None = None,
-        poll_interval: int = REDDIT_POLL_INTERVAL_SECONDS,
-        max_age_seconds: int = REDDIT_MAX_OPPORTUNITY_AGE_SECONDS,
+        poll_interval: int = REDDIT_SCAN_INTERVAL_SECONDS,
+        max_age_seconds: int = REDDIT_MAX_FRESHNESS_SECONDS,
     ):
         self.browser = browser
         self.client = client or RedditClient(browser=browser)
-        self.query_queue = query_queue or RedditQueryQueue()
         self.poll_interval = poll_interval
         self.max_age_seconds = max_age_seconds
         self.seen_keys = load_seen_opportunity_keys()
 
-    def _process_raw_posts(self, raw_posts: list[dict], query: str = "") -> list[dict]:
-        discovered_opportunities = []
-        new_count = 0
-        duplicate_count = 0
-        old_count = 0
-        unknown_time_count = 0
-        weak_count = 0
-        possible_count = 0
-        strong_count = 0
+    def process_item(self, normalized_item: dict) -> dict | None:
+        """Evaluate normalized post or comment item, save and alert immediately if fresh opportunity."""
+        opportunity_key = normalized_item["opportunity_key"]
+
+        if opportunity_key in self.seen_keys:
+            return None
+
+        self.seen_keys.add(opportunity_key)
+
+        timestamp_confidence = normalized_item.get("timestamp_confidence", "NONE")
+        age_seconds = normalized_item.get("age_seconds")
+
+        # Strict Freshness Check
+        if timestamp_confidence in {"NONE", "UNKNOWN"} or age_seconds is None:
+            return None
+
+        if age_seconds > self.max_age_seconds:
+            return None
+
+        opportunity_analysis = analyze_opportunity(normalized_item["content_text"])
+        quality = opportunity_analysis["quality"]
+
+        if quality in {"WEAK", "REJECT"}:
+            return None
+
+        opportunity = build_opportunity(
+            group_name=normalized_item["community_name"],
+            group_url=normalized_item["source_url"],
+            content_type=normalized_item["content_type"],
+            author=normalized_item["author"],
+            content_text=normalized_item["content_text"],
+            content_url=normalized_item["content_url"],
+            timestamp_info=normalized_item["timestamp_info"],
+            opportunity_analysis=opportunity_analysis,
+            opportunity_key=opportunity_key,
+            source="reddit",
+            subreddit=normalized_item["subreddit"],
+            title=normalized_item.get("title"),
+            detection_latency_seconds=normalized_item["detection_latency_seconds"],
+            query=normalized_item.get("query"),
+            post_id=normalized_item.get("post_id") or normalized_item.get("comment_id"),
+        )
+
+        save_opportunity(opportunity)
+        alert_opportunity(opportunity)
+        display_opportunity(opportunity)
+        return opportunity
+
+    def process_posts(self, raw_posts: list[dict], query: str = "") -> list[dict]:
+        """Process list of raw posts into immediate opportunities."""
+        detected_at = time.time()
+        discovered = []
 
         for raw_post in raw_posts:
-            detected_at = time.time()
             normalized = normalize_reddit_post(raw_post, query=query, detected_at=detected_at)
-            opportunity_key = (
-                normalized["timestamp_info"] and f"reddit:{normalized['post_id']}"
-            ) or normalized["content_url"]
+            opportunity = self.process_item(normalized)
+            if opportunity:
+                discovered.append(opportunity)
 
-            if opportunity_key in self.seen_keys:
-                duplicate_count += 1
-                continue
+        return discovered
 
-            self.seen_keys.add(opportunity_key)
-            new_count += 1
+    def process_comments(self, raw_comments: list[dict], query: str = "") -> list[dict]:
+        """Process list of raw comments into immediate opportunities."""
+        detected_at = time.time()
+        discovered = []
 
-            timestamp_info = normalized["timestamp_info"]
-            if not is_fresh_opportunity_timestamp(timestamp_info):
-                if timestamp_info["freshness"] == "UNKNOWN":
-                    unknown_time_count += 1
-                    print(f"[REDDIT] Unknown timestamp for post {normalized['post_id']}; skipping.")
-                else:
-                    old_count += 1
-                    print(
-                        f"[REDDIT] Old post ({timestamp_info['freshness']}) "
-                        f"age={timestamp_info['age_seconds']}s; skipping."
-                    )
-                continue
+        for raw_comment in raw_comments:
+            normalized = normalize_reddit_comment(raw_comment, query=query, detected_at=detected_at)
+            opportunity = self.process_item(normalized)
+            if opportunity:
+                discovered.append(opportunity)
 
-            if (
-                timestamp_info["age_seconds"] is not None
-                and timestamp_info["age_seconds"] > self.max_age_seconds
-            ):
-                old_count += 1
-                continue
+        return discovered
 
-            opportunity_analysis = analyze_opportunity(normalized["content_text"])
-            quality = opportunity_analysis["quality"]
+    def _filter_fresh_items(self, items: list[dict], detected_at: float) -> list[dict]:
+        """Return subset of normalized items that meet strict freshness window."""
+        fresh = []
+        for item in items:
+            confidence = item.get("timestamp_confidence", "NONE")
+            age = item.get("age_seconds")
+            if confidence not in {"NONE", "UNKNOWN"} and age is not None and age <= self.max_age_seconds:
+                fresh.append(item)
+        return fresh
 
-            if quality == "WEAK":
-                weak_count += 1
-                continue
-            elif quality == "POSSIBLE":
-                possible_count += 1
-            elif quality == "STRONG":
-                strong_count += 1
+    def monitor_subreddit(self, subreddit_url: str) -> dict:
+        """Fetch posts and comments for a single subreddit, process fresh items immediately, and return stats."""
+        detected_at = time.time()
+        sub_name = extract_subreddit_name("", permalink=subreddit_url, url=subreddit_url)
+        print(f"[REDDIT] Checking {sub_name}")
 
-            opportunity = build_opportunity(
-                group_name=normalized["community_name"],
-                group_url=normalized["source_url"],
-                content_type="POST",
-                author=normalized["author"],
-                content_text=normalized["content_text"],
-                content_url=normalized["content_url"],
-                timestamp_info=timestamp_info,
-                opportunity_analysis=opportunity_analysis,
-                opportunity_key=opportunity_key,
-                source="reddit",
-                subreddit=normalized["subreddit"],
-                title=normalized["title"],
-                detection_latency_seconds=normalized["detection_latency_seconds"],
-                query=query,
-                post_id=normalized["post_id"],
-            )
+        if self.browser is not None:
+            new_posts_url = f"{subreddit_url.rstrip('/')}/new/"
+            try:
+                self.browser.get(new_posts_url)
+                wait_for_page_ready(self.browser)
+                raw_posts = extract_reddit_posts_from_browser(self.browser, url=new_posts_url)
+            except Exception as error:
+                print(f"[REDDIT] Browser error fetching posts for {sub_name}: {short_error(error)}")
+                raw_posts = []
 
-            save_opportunity(opportunity)
-            alert_opportunity(opportunity)
-            display_opportunity(opportunity)
-            discovered_opportunities.append(opportunity)
+            comments_url = f"{subreddit_url.rstrip('/')}/comments/"
+            try:
+                self.browser.get(comments_url)
+                wait_for_page_ready(self.browser)
+                raw_comments = extract_reddit_comments_from_browser(self.browser, url=comments_url)
+            except Exception as error:
+                print(f"[REDDIT] Browser error fetching comments for {sub_name}: {short_error(error)}")
+                raw_comments = []
+        else:
+            raw_posts = self.client.fetch_subreddit_posts(subreddit_url, limit=25)
+            raw_comments = self.client.fetch_subreddit_comments(subreddit_url, limit=25)
 
-        print(
-            f"[REDDIT] Summary -> "
-            f"New: {new_count}, Dup: {duplicate_count}, Old: {old_count}, "
-            f"UnknownTime: {unknown_time_count}, Weak: {weak_count}, "
-            f"Possible: {possible_count}, Strong: {strong_count}"
-        )
-        return discovered_opportunities
+        normalized_posts = [normalize_reddit_post(p, query=subreddit_url, detected_at=detected_at) for p in raw_posts]
+        normalized_comments = [normalize_reddit_comment(c, query=subreddit_url, detected_at=detected_at) for c in raw_comments]
+
+        fresh_posts = self._filter_fresh_items(normalized_posts, detected_at)
+        fresh_comments = self._filter_fresh_items(normalized_comments, detected_at)
+        total_fresh_items = len(fresh_posts) + len(fresh_comments)
+
+        opportunities = []
+
+        # Process fresh posts
+        for norm in normalized_posts:
+            opp = self.process_item(norm)
+            if opp:
+                opportunities.append(opp)
+
+        # Process fresh comments
+        for norm in normalized_comments:
+            opp = self.process_item(norm)
+            if opp:
+                opportunities.append(opp)
+
+        latencies = [
+            opp["detection_latency_seconds"]
+            for opp in opportunities
+            if opp.get("detection_latency_seconds") is not None
+        ]
+        avg_latency_str = f"{sum(latencies)/len(latencies):.1f}s" if latencies else "N/A"
+
+        print(f"[REDDIT] New posts: {len(raw_posts)}")
+        print(f"[REDDIT] New comments: {len(raw_comments)}")
+        print(f"[REDDIT] Fresh items: {total_fresh_items}")
+        print(f"[REDDIT] Opportunities: {len(opportunities)}")
+        print(f"[REDDIT] Detection latency: {avg_latency_str}")
+
+        return {
+            "subreddit": sub_name,
+            "posts_count": len(raw_posts),
+            "comments_count": len(raw_comments),
+            "fresh_count": total_fresh_items,
+            "opportunities_count": len(opportunities),
+            "opportunities": opportunities,
+        }
 
     def scan_url(self, url: str) -> list[dict]:
-        """Navigate Chrome browser to Reddit target URL, extract posts, and process opportunities."""
-        print(f"[REDDIT] Target URL: '{url}'")
-
-        if self.browser is None:
-            self.browser = create_driver()
-
-        login_if_needed_reddit(self.browser)
-
-        try:
-            self.browser.get(url)
-            wait_for_page_ready(self.browser)
-            scroll_down(self.browser)
-            raw_posts = extract_reddit_posts_from_browser(self.browser, url=url)
-        except Exception as error:
-            print(f"[REDDIT] Error loading URL '{url}': {short_error(error)}")
-            raw_posts = []
-
-        print(f"[REDDIT] Results: {len(raw_posts)} posts retrieved")
-        return self._process_raw_posts(raw_posts, query=url)
+        """Backward compatible URL scanning."""
+        stats = self.monitor_subreddit(url)
+        return stats["opportunities"]
 
     def process_query(self, query: str) -> list[dict]:
-        """Run single search query against Reddit using browser if available or client fallback."""
-        if self.browser is not None:
-            encoded = quote(query)
-            search_url = f"https://www.reddit.com/search/?q={encoded}&sort=new"
-            return self.scan_url(search_url)
-
-        print(f"[REDDIT] Query: '{query}'")
+        """Backward compatible single query process using client API."""
         raw_posts = self.client.search_newest(query, limit=REDDIT_MAX_RESULTS_PER_QUERY)
-        print(f"[REDDIT] Results: {len(raw_posts)} posts retrieved")
-        return self._process_raw_posts(raw_posts, query=query)
+        return self.process_posts(raw_posts, query=query)
 
     def run_continuous(self, start_time: float | None = None) -> None:
-        """Continuous scanning loop over target Reddit list and search queries using Chrome browser."""
+        """Continuous monitoring loop over fixed subreddit watchlist."""
         if start_time is None:
             start_time = time.time()
 
@@ -354,29 +478,37 @@ class RedditScanner:
             self.browser = create_driver()
 
         login_if_needed_reddit(self.browser)
-        target_urls = load_reddit_urls()
 
-        print(f"[REDDIT] Continuous scanner started on {len(target_urls)} target URLs")
+        subreddit_urls = load_subreddit_urls()
+        print(f"[REDDIT] Real-time scanner started on {len(subreddit_urls)} fixed watchlist subreddits")
 
-        url_index = 0
         while True:
-            if not target_urls:
-                target_urls = load_reddit_urls()
-                if not target_urls:
-                    print("[REDDIT] No target URLs available in sub_raddit_list or reddit_queries.txt. Waiting 30s...")
-                    time.sleep(30)
-                    continue
+            cycle_started_at = time.time()
+            subreddit_urls = load_subreddit_urls()
+            if not subreddit_urls:
+                print("[REDDIT] No subreddits in sub_raddit_list. Waiting 30s...")
+                time.sleep(30)
+                continue
 
-            url = target_urls[url_index]
-            try:
-                self.scan_url(url)
-            except Exception as error:
-                print(f"[REDDIT] Error scanning target URL '{url}': {short_error(error)}")
+            cycle_opportunities = 0
 
+            for sub_url in subreddit_urls:
+                try:
+                    stats = self.monitor_subreddit(sub_url)
+                    cycle_opportunities += stats["opportunities_count"]
+                except Exception as error:
+                    print(f"[REDDIT] Error monitoring '{sub_url}': {short_error(error)}")
+
+            cycle_finished_at = time.time()
+            cycle_duration_seconds = cycle_finished_at - cycle_started_at
+
+            print(
+                f"[REDDIT] Cycle finished: duration={cycle_duration_seconds:.1f}s, "
+                f"total_opportunities={cycle_opportunities}"
+            )
             print_running_time(start_time)
-            print(f"[REDDIT] Waiting {self.poll_interval} seconds before next target...")
+            print(f"[REDDIT] Waiting {self.poll_interval}s before next monitoring pass...")
             time.sleep(self.poll_interval)
-            url_index = (url_index + 1) % len(target_urls)
 
 
 def main():

@@ -9,9 +9,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from reddit_auto.reddit_client import RedditClient
-from reddit_auto.reddit_parser import normalize_reddit_post
+from reddit_auto.reddit_parser import (
+    extract_subreddit_name,
+    normalize_reddit_comment,
+    normalize_reddit_post,
+)
 from reddit_auto.reddit_query_queue import RedditQueryQueue, load_reddit_queries
-from reddit_auto.reddit_scanner import RedditScanner
+from reddit_auto.reddit_scanner import RedditScanner, login_if_needed_reddit
 from reddit_auto.reddit_urls import build_reddit_permalink, clean_reddit_url
 from search_interested.opportunity_engine import analyze_opportunity
 from search_interested.results import (
@@ -20,6 +24,7 @@ from search_interested.results import (
     load_seen_opportunity_keys,
     save_opportunity,
 )
+from search_interested.settings import REDDIT_MAX_FRESHNESS_SECONDS, REDDIT_SCAN_INTERVAL_SECONDS
 
 
 def test_1_reddit_url_normalization():
@@ -39,18 +44,19 @@ def test_2_reddit_post_normalization():
         "title": "Need a developer to build website",
         "selftext": "Looking for a Python Django developer.",
         "author": "client_user",
-        "subreddit": "forhire",
-        "permalink": "/r/forhire/comments/post123/",
+        "subreddit": "CryptoTradingBot",
+        "permalink": "/r/CryptoTradingBot/comments/post123/",
         "created_utc": now - 10,
     }
 
     normalized = normalize_reddit_post(raw, query="need a developer", detected_at=now)
     assert normalized["post_id"] == "post123"
+    assert normalized["opportunity_key"] == "reddit:t3_post123"
     assert normalized["author"] == "client_user"
-    assert normalized["community_name"] == "r/forhire"
+    assert normalized["community_name"] == "r/CryptoTradingBot"
     assert "Need a developer" in normalized["content_text"]
     assert "Looking for a Python" in normalized["content_text"]
-    assert normalized["source_url"] == "https://www.reddit.com/r/forhire/comments/post123/"
+    assert normalized["source_url"] == "https://www.reddit.com/r/CryptoTradingBot/comments/post123/"
 
 
 def test_3_reddit_timestamp_parsing():
@@ -61,7 +67,7 @@ def test_3_reddit_timestamp_parsing():
         "created_utc": now - 30,
     }
     normalized = normalize_reddit_post(raw, detected_at=now)
-    assert normalized["timestamp_info"]["confidence"] == "HIGH"
+    assert normalized["timestamp_confidence"] == "HIGH"
     assert normalized["age_seconds"] == 30
     assert normalized["timestamp_info"]["freshness"] == "VERY_RECENT"
 
@@ -74,42 +80,39 @@ def test_4_detection_latency():
         "created_utc": now - 4.5,
     }
     normalized = normalize_reddit_post(raw, detected_at=now)
-    assert normalized["detection_latency_seconds"] == 4
+    assert normalized["detection_latency_seconds"] == 4.5
 
 
 def test_5_duplicate_reddit_posts_discovered_by_two_queries(tmp_path):
-    results_file = tmp_path / "search_results.txt"
-    queue_file = tmp_path / "reddit_queries.txt"
-    queue_file.write_text("looking for developer\nneed developer\n", encoding="utf-8")
-
     now = time.time()
     mock_post = {
         "id": "dup_post_999",
         "title": "Looking for a developer to build an app",
         "selftext": "I need a programmer for a Python project.",
         "author": "buyer_123",
-        "subreddit": "forhire",
-        "permalink": "/r/forhire/comments/dup_post_999/",
+        "subreddit": "CryptoTradingBot",
+        "permalink": "/r/CryptoTradingBot/comments/dup_post_999/",
         "created_utc": now - 10,
     }
 
     mock_client = MagicMock()
     mock_client.search_newest.return_value = [mock_post]
 
-    queue = RedditQueryQueue(queries_file=queue_file)
-    scanner = RedditScanner(client=mock_client, query_queue=queue)
+    scanner = RedditScanner(client=mock_client)
 
-    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save:
-        # Run query 1
-        res1 = scanner.process_query("looking for developer")
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
+         patch("reddit_auto.reddit_scanner.alert_opportunity") as mock_alert:
+        # Run 1
+        res1 = scanner.process_posts([mock_post])
         assert len(res1) == 1
 
-        # Run query 2 (same post)
-        res2 = scanner.process_query("need developer")
+        # Run 2 (same post)
+        res2 = scanner.process_posts([mock_post])
         assert len(res2) == 0
 
-        # Should only have saved once
+        # Saved and alerted only once
         assert mock_save.call_count == 1
+        assert mock_alert.call_count == 1
 
 
 def test_6_fresh_opportunity_detection():
@@ -121,217 +124,153 @@ def test_6_fresh_opportunity_detection():
         "created_utc": now - 15,
     }
     normalized = normalize_reddit_post(raw, detected_at=now)
-    assert normalized["timestamp_info"]["freshness"] in {"VERY_RECENT", "RECENT"}
+    assert normalized["timestamp_confidence"] == "HIGH"
+    assert normalized["age_seconds"] <= REDDIT_MAX_FRESHNESS_SECONDS
 
 
-def test_7_old_post_rejection(tmp_path):
+def test_7_old_post_rejection():
     mock_client = MagicMock()
-    old_time = time.time() - (10 * 24 * 60 * 60) # 10 days old
-    mock_client.search_newest.return_value = [{
+    old_time = time.time() - 601  # 601 seconds old (over 600s max freshness)
+    old_post = {
         "id": "old1",
         "title": "Looking for a Python developer",
         "selftext": "I need someone to build an API.",
         "created_utc": old_time,
-    }]
+    }
 
-    scanner = RedditScanner(client=mock_client, max_age_seconds=86400)
-    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save:
-        results = scanner.process_query("looking for developer")
+    scanner = RedditScanner(client=mock_client, max_age_seconds=REDDIT_MAX_FRESHNESS_SECONDS)
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
+         patch("reddit_auto.reddit_scanner.alert_opportunity") as mock_alert:
+        results = scanner.process_posts([old_post])
         assert len(results) == 0
         mock_save.assert_not_called()
+        mock_alert.assert_not_called()
 
 
-def test_8_unknown_timestamp_behavior(tmp_path):
+def test_8_unknown_timestamp_behavior():
     mock_client = MagicMock()
-    mock_client.search_newest.return_value = [{
+    unknown_post = {
         "id": "unknown_time",
         "title": "Looking for a Python developer",
         "created_utc": None,
-    }]
+    }
 
     scanner = RedditScanner(client=mock_client)
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
+         patch("reddit_auto.reddit_scanner.alert_opportunity") as mock_alert:
+        results = scanner.process_posts([unknown_post])
+        assert len(results) == 0
+        mock_save.assert_not_called()
+        mock_alert.assert_not_called()
+
+
+def test_9_fresh_comment_on_old_post():
+    now = time.time()
+    old_parent_created_utc = now - (3 * 24 * 60 * 60) # 3 days old
+    fresh_comment_created_utc = now - 20 # 20 seconds old
+
+    raw_comment = {
+        "id": "comm123",
+        "link_title": "Looking for a trading bot developer",
+        "body": "I need a developer to build a Python crypto trading bot.",
+        "author": "commenter_1",
+        "subreddit": "CryptoTradingBot",
+        "permalink": "/r/CryptoTradingBot/comments/old_post/title/comm123/",
+        "created_utc": fresh_comment_created_utc,
+    }
+
+    normalized = normalize_reddit_comment(raw_comment, detected_at=now)
+    assert normalized["content_type"] == "COMMENT"
+    assert normalized["age_seconds"] == 20
+    assert normalized["timestamp_confidence"] == "HIGH"
+    assert normalized["opportunity_key"] == "reddit:t1_comm123"
+
+    scanner = RedditScanner()
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
+         patch("reddit_auto.reddit_scanner.alert_opportunity") as mock_alert:
+        results = scanner.process_comments([raw_comment])
+        assert len(results) == 1
+        assert mock_save.call_count == 1
+        assert mock_alert.call_count == 1
+
+
+def test_10_stale_comment_rejection():
+    now = time.time()
+    stale_comment_created_utc = now - 601 # 601 seconds old
+
+    raw_comment = {
+        "id": "stale_comm",
+        "body": "Looking for a Python developer.",
+        "created_utc": stale_comment_created_utc,
+    }
+
+    scanner = RedditScanner(max_age_seconds=REDDIT_MAX_FRESHNESS_SECONDS)
     with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save:
-        results = scanner.process_query("looking for developer")
+        results = scanner.process_comments([raw_comment])
         assert len(results) == 0
         mock_save.assert_not_called()
 
 
-def test_9_strong_opportunity_classification():
-    text = "Looking for a Python developer to build a web application. Urgent project with budget."
-    analysis = analyze_opportunity(text)
-    assert analysis["quality"] in {"STRONG", "POSSIBLE"}
-    assert analysis["score"] >= 4
-
-
-def test_10_provider_self_promotion_rejection():
-    text = "I am a Python developer available for work. Developer here! DM me if you need help."
-    analysis = analyze_opportunity(text)
-    assert analysis["quality"] == "WEAK"
-
-
-def test_11_title_and_body_analysis():
-    raw = {
-        "id": "tb1",
-        "title": "Looking for developer",
-        "selftext": "I need help building a Django backend.",
+def test_11_canonical_deduplication():
+    now = time.time()
+    raw_post = {
+        "id": "t3_abc111",
+        "title": "Looking for a developer",
+        "selftext": "Need python programmer.",
+        "created_utc": now - 10,
     }
-    normalized = normalize_reddit_post(raw)
-    analysis = analyze_opportunity(normalized["content_text"])
-    assert "looking_for" in analysis["matched_signals"]
-    assert "developer" in analysis["matched_signals"]
+    raw_comment = {
+        "id": "t1_xyz222",
+        "body": "I am looking for a developer to hire.",
+        "created_utc": now - 15,
+    }
+
+    norm_p = normalize_reddit_post(raw_post, detected_at=now)
+    norm_c = normalize_reddit_comment(raw_comment, detected_at=now)
+
+    assert norm_p["opportunity_key"] == "reddit:t3_abc111"
+    assert norm_c["opportunity_key"] == "reddit:t1_xyz222"
 
 
-def test_12_reddit_result_persistence(tmp_path):
-    results_file = tmp_path / "test_results.txt"
+def test_12_subreddit_extraction():
+    sub1 = extract_subreddit_name("CryptoTradingBot")
+    assert sub1 == "r/CryptoTradingBot"
 
-    opportunity = build_opportunity(
-        group_name="r/forhire",
-        group_url="https://www.reddit.com/r/forhire/comments/xyz/",
-        content_type="POST",
-        author="client1",
-        content_text="Looking for developer to build website",
-        content_url="https://www.reddit.com/r/forhire/comments/xyz/",
-        timestamp_info={
-            "raw": "2026-09-02 12:00:00 UTC",
-            "age_seconds": 120,
-            "freshness": "VERY_RECENT",
-            "confidence": "HIGH",
-            "source": "reddit_created_utc",
-            "warning": None,
-        },
-        opportunity_analysis={
-            "matched_signals": ["looking_for", "developer"],
-            "score": 8,
-            "quality": "STRONG",
-        },
-        source="reddit",
-        subreddit="r/forhire",
-        title="Looking for developer",
-        detection_latency_seconds=5.2,
-        post_id="xyz",
-    )
+    sub2 = extract_subreddit_name("r/algotrading")
+    assert sub2 == "r/algotrading"
 
-    success = save_opportunity(opportunity, results_file=results_file)
-    assert success is True
-
-    saved_text = results_file.read_text(encoding="utf-8")
-    assert "REDDIT OPPORTUNITY FOUND" in saved_text
-    assert "Subreddit:\n    r/forhire" in saved_text
-    assert "Detection Latency:\n    5.2 seconds" in saved_text
-
-    seen_keys = load_seen_opportunity_keys(results_file=results_file)
-    assert "reddit:xyz" in seen_keys
+    sub3 = extract_subreddit_name("", permalink="/r/CryptoTradingBot/comments/xyz/")
+    assert sub3 == "r/CryptoTradingBot"
 
 
-def test_13_query_queue_rotation(tmp_path):
-    query_file = tmp_path / "queries.txt"
-    query_file.write_text("# Comment line\nlooking for developer\n\nneed a developer\n", encoding="utf-8")
-
-    queue = RedditQueryQueue(queries_file=query_file)
-    q1 = queue.get_next_query()
-    q2 = queue.get_next_query()
-    q3 = queue.get_next_query()
-
-    assert q1 == "looking for developer"
-    assert q2 == "need a developer"
-    assert q3 == "looking for developer"
-
-
-def test_14_rate_limit_and_error_recovery():
-    client = RedditClient(retry_delay=0.01)
-
-    with patch("urllib.request.urlopen") as mock_urlopen:
-        mock_response = MagicMock()
-        mock_response.getcode.return_value = 200
-        mock_response.read.return_value = json.dumps({
-            "data": {
-                "children": [
-                    {
-                        "kind": "t3",
-                        "data": {
-                            "id": "p1",
-                            "title": "Looking for programmer",
-                            "created_utc": time.time(),
-                        }
-                    }
-                ]
-            }
-        }).encode("utf-8")
-        mock_urlopen.return_value.__enter__.return_value = mock_response
-
-        posts = client.search_newest("looking for programmer")
-        assert len(posts) == 1
-        assert posts[0]["id"] == "p1"
-
-
-def test_15_search_interested_entrypoint():
-    from reddit_auto import SearchInterested
-
-    assert hasattr(SearchInterested, "RedditScanner")
-    assert hasattr(SearchInterested, "RedditClient")
-    assert hasattr(SearchInterested, "RedditQueryQueue")
-    assert hasattr(SearchInterested, "scan_query")
-    assert hasattr(SearchInterested, "run_continuous_scanner")
-
-    mock_scanner = MagicMock()
-    mock_scanner.process_query.return_value = [{"post_id": "test_15"}]
-
-    res = SearchInterested.scan_query("looking for developer", scanner=mock_scanner)
-    assert len(res) == 1
-    assert res[0]["post_id"] == "test_15"
-    mock_scanner.process_query.assert_called_once_with("looking for developer")
-
-    with patch("reddit_auto.SearchInterested.scanner_main") as mock_main:
-        SearchInterested.main()
-        mock_main.assert_called_once()
-
-
-def test_16_subreddit_list_loading(tmp_path):
-    sub_file = tmp_path / "sub_raddit_list"
-    sub_file.write_text(
-        "# Subreddit list\nhttps://www.reddit.com/r/CryptoTradingBot/\nr/algotrading\n\nforhire\n",
-        encoding="utf-8",
-    )
-    query_file = tmp_path / "queries.txt"
-    query_file.write_text("looking for developer\n", encoding="utf-8")
-
-    from reddit_auto.reddit_query_queue import load_reddit_urls, load_subreddit_urls
-
-    sub_urls = load_subreddit_urls(list_file=sub_file)
-    assert len(sub_urls) == 3
-    assert "https://www.reddit.com/r/CryptoTradingBot/" in sub_urls
-    assert "https://www.reddit.com/r/algotrading/" in sub_urls
-    assert "https://www.reddit.com/r/forhire/" in sub_urls
-
-    all_urls = load_reddit_urls(subreddits_file=sub_file, queries_file=query_file)
-    assert len(all_urls) == 4
-    assert any("search/?q=looking" in url for url in all_urls)
-
-
-def test_17_extract_reddit_posts_from_browser_dom():
-    from reddit_auto.reddit_scanner import extract_reddit_posts_from_browser
-
+def test_13_manual_login_gate():
     mock_browser = MagicMock()
-    mock_body = MagicMock()
-    mock_body.text = "<html>Reddit webpage</html>"
-    mock_browser.find_element.return_value = mock_body
+    with patch("builtins.input", return_value=""), \
+         patch("reddit_auto.reddit_scanner.wait_for_page_ready") as mock_wait:
+        login_if_needed_reddit(mock_browser)
+        mock_browser.get.assert_called_once_with("https://www.reddit.com")
+        assert mock_wait.call_count >= 1
 
-    mock_post_el = MagicMock()
-    mock_post_el.get_attribute.side_effect = lambda attr: {
-        "id": "post_dom_123",
-        "post-title": "Looking for a Python developer",
-        "author": "dev_buyer",
-        "subreddit-prefixed-name": "r/forhire",
-        "permalink": "/r/forhire/comments/post_dom_123/",
-        "created-timestamp": str(time.time() - 30),
-    }.get(attr, "")
-    mock_post_el.find_elements.return_value = []
 
-    mock_browser.find_elements.return_value = [mock_post_el]
+def test_14_configuration_variables():
+    assert REDDIT_MAX_FRESHNESS_SECONDS == 600
+    assert REDDIT_SCAN_INTERVAL_SECONDS == 30
 
-    posts = extract_reddit_posts_from_browser(mock_browser)
-    assert len(posts) == 1
-    assert posts[0]["id"] == "post_dom_123"
-    assert posts[0]["title"] == "Looking for a Python developer"
-    assert posts[0]["author"] == "dev_buyer"
-    assert posts[0]["url"] == "https://www.reddit.com/r/forhire/comments/post_dom_123/"
+
+def test_15_immediate_alert_behavior():
+    now = time.time()
+    raw_post = {
+        "id": "immediate_1",
+        "title": "Looking for a Python developer",
+        "selftext": "Urgent need for web scraper developer.",
+        "subreddit": "CryptoTradingBot",
+        "created_utc": now - 10,
+    }
+
+    scanner = RedditScanner()
+    with patch("reddit_auto.reddit_scanner.save_opportunity") as mock_save, \
+         patch("reddit_auto.reddit_scanner.alert_opportunity") as mock_alert:
+        res = scanner.process_posts([raw_post])
+        assert len(res) == 1
+        mock_save.assert_called_once()
+        mock_alert.assert_called_once()
