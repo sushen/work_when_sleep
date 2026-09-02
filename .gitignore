@@ -12,4 +12,5 @@
 /Bots/userdata/
 campaign-318908-b7f2f5f17cab.json
 miracle.db
-/PersonalTouch/userdata/
+/PersonalTouch/userdata/__pycache__/
+*.pyc
