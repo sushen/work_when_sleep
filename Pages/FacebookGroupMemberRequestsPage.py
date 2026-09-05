@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import time
-from urllib.parse import quote
 
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,7 +15,6 @@ from search_interested.facebook_dom import (
     extract_author,
     extract_content_text,
     extract_timestamp,
-    scroll_down,
 )
 from search_interested.facebook_urls import clean_facebook_url
 from search_interested.settings import (
@@ -41,16 +40,57 @@ class FacebookGroupMemberRequestsPage(BasePage):
         """Navigate directly to Goethe Group Member Requests URL."""
         self.driver.get(url)
         wait_for_page_ready(self.driver, timeout=WAIT_SECONDS)
-        time.sleep(2)
 
     def reload_page(self) -> None:
         """Reload the member requests page."""
         self.driver.refresh()
         wait_for_page_ready(self.driver, timeout=WAIT_SECONDS)
-        time.sleep(2)
+
+    def wait_for_first_member_request(self, timeout: int = 10) -> bool:
+        """Wait until the first member request card element is present."""
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                EC.presence_of_element_located(self.MEMBER_REQUEST_CARDS)
+            )
+            return True
+        except TimeoutException:
+            return False
+
+    def get_first_member_request(
+        self,
+        group_name: str = "Goethe Group Bangladesh",
+        group_url: str = GOETHE_MEMBER_REQUESTS_URL,
+        max_retries: int = 3,
+        timeout: int = 10,
+    ) -> dict | None:
+        """Locate ONLY the first/newest member request card and extract its data."""
+        for attempt in range(max_retries):
+            try:
+                if not self.wait_for_first_member_request(timeout=timeout):
+                    return None
+
+                elements = self.driver.find_elements(*self.MEMBER_REQUEST_CARDS)
+                if not elements:
+                    return None
+
+                first_card = elements[0]
+                data = self.extract_member_request_data(
+                    first_card, group_name=group_name, group_url=group_url
+                )
+                if data:
+                    return data
+            except StaleElementReferenceException:
+                print(f"[POM] Stale element on attempt {attempt + 1}/{max_retries}, retrying...")
+                time.sleep(0.5)
+                continue
+            except Exception as error:
+                print(f"[POM] Error extracting first member request data: {error}")
+                return None
+
+        return None
 
     def get_visible_member_requests(self) -> list:
-        """Find and return visible member request cards/elements on the page."""
+        """Legacy helper for visible member request elements."""
         try:
             elements = self.driver.find_elements(*self.MEMBER_REQUEST_CARDS)
             return elements
@@ -69,7 +109,7 @@ class FacebookGroupMemberRequestsPage(BasePage):
             author = extract_author(element)
             text = extract_content_text(element, "MEMBER_REQUEST", author=author)
 
-            if not text and element.text:
+            if not text and hasattr(element, "text") and element.text:
                 text = element.text.strip()
 
             if not text:
@@ -77,15 +117,19 @@ class FacebookGroupMemberRequestsPage(BasePage):
 
             timestamp_info = extract_timestamp(element, "MEMBER_REQUEST")
 
-            # Try extracting profile link or request identifier
             request_url = group_url
             try:
-                links = element.find_elements(By.XPATH, ".//a[contains(@href, '/user/') or contains(@href, 'profile.php')]")
+                links = element.find_elements(
+                    By.XPATH,
+                    ".//a[contains(@href, '/user/') or contains(@href, 'profile.php')]",
+                )
                 for link in links:
                     href = link.get_attribute("href")
                     if href:
                         request_url = clean_facebook_url(href)
                         break
+            except StaleElementReferenceException:
+                raise
             except Exception:
                 pass
 
@@ -100,6 +144,8 @@ class FacebookGroupMemberRequestsPage(BasePage):
                 "content_type": "MEMBER_REQUEST",
                 "timestamp_info": timestamp_info,
             }
+        except StaleElementReferenceException:
+            raise
         except Exception as error:
             print(f"[POM] Error extracting member request data: {error}")
             return None
