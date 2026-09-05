@@ -141,7 +141,6 @@ class GoetheGroupScanner:
                 if page.is_technical_error_page():
                     print("[GoetheGroups] Facebook temporary technical error detected.")
                     print("[GoetheGroups] Reloading immediately...")
-                    time.sleep(3)
                     continue
                 if attempt > 0:
                     print("[GoetheGroups] Member Requests page recovered.")

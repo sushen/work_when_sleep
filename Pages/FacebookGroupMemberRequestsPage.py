@@ -53,11 +53,26 @@ class FacebookGroupMemberRequestsPage(BasePage):
             title = self.driver.title or ""
             if "error" in title.lower():
                 return True
+            page_text = ""
+            try:
+                page_text = self.driver.find_element(By.TAG_NAME, "body").text.lower()
+            except Exception:
+                pass
+
+            unavailable_messages = (
+                "this page isn't available at the moment",
+                "this page isn't available right now",
+                "this content isn't available right now",
+                "something went wrong",
+            )
+            if any(message in page_text for message in unavailable_messages):
+                return True
+
             error_indicators = (
-                "//span[contains(text(), \"This page isn't available right now\")] | "
-                "//span[contains(text(), \"This content isn't available right now\")] | "
-                "//div[contains(text(), \"Something went wrong\")] | "
-                "//h2[contains(text(), \"This page isn't available\")]"
+                "//body[contains(., \"This page isn't available at the moment\")] | "
+                "//body[contains(., \"This page isn't available right now\")] | "
+                "//body[contains(., \"This content isn't available right now\")] | "
+                "//body[contains(., \"Something went wrong\")]"
             )
             elements = self.driver.find_elements(By.XPATH, error_indicators)
             return len(elements) > 0
