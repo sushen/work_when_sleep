@@ -22,6 +22,7 @@ from goethe_groups.goethe_scanner import (
     normalize_member_request,
 )
 from search_interested.settings import ALERT_WINDOW_SECONDS, MEMBER_REQUEST_ALERT_WINDOW_MINUTES
+from search_interested.facebook_dom import extract_timestamp
 from search_interested.timestamps import parse_relative_timestamp_age
 
 
@@ -91,6 +92,19 @@ def test_normalize_member_request():
     assert normalized["group_name"] == "Goethe Group Bangladesh"
     assert normalized["author"] == "Rahim Khan"
     assert normalized["age_seconds"] == 45
+
+
+def test_member_request_timestamp_is_extracted_from_card_text():
+    card = MagicMock()
+    timestamp_element = MagicMock()
+    timestamp_element.text = "Requested\na few seconds ago"
+    timestamp_element.get_attribute.return_value = ""
+    card.find_elements.return_value = [timestamp_element]
+
+    timestamp_info = extract_timestamp(card, "MEMBER_REQUEST")
+
+    assert timestamp_info["raw"] == "a few seconds ago"
+    assert timestamp_info["age_seconds"] == 10
 
 
 def test_first_request_a_few_seconds_ago_beep():
