@@ -31,7 +31,7 @@ class FacebookGroupMemberRequestsPage(BasePage):
         "//div[@role='main']//div[@role='article'] | "
         "//div[@role='main']//div[contains(@aria-label, 'Member request')] | "
         "//div[@role='main']//div[.//a[contains(@href, '/user/') or contains(@href, 'profile.php')] and "
-        "(.*[contains(text(), 'Requested')] or .//div[contains(@aria-label, 'Approve') or contains(@aria-label, 'Decline') or contains(., 'Approve') or contains(., 'Decline')])]",
+        "(.//*[contains(text(), 'Requested')] or .//div[contains(@aria-label, 'Approve') or contains(@aria-label, 'Decline') or contains(., 'Approve') or contains(., 'Decline')])]",
     )
 
     def __init__(self, driver):
