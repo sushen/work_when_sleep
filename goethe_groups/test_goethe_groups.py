@@ -16,7 +16,12 @@ from goethe_groups.goethe_config import (
     get_enabled_goethe_groups,
     load_goethe_groups_config,
 )
-from goethe_groups.goethe_scanner import GoetheGroupScanner, normalize_member_request
+from goethe_groups.goethe_scanner import (
+    GoetheGroupScanner,
+    format_runtime,
+    normalize_member_request,
+)
+from search_interested.timestamps import parse_relative_timestamp_age
 
 
 def test_goethe_config_loading_member_requests(tmp_path: Path):
@@ -38,6 +43,21 @@ def test_goethe_config_loading_member_requests(tmp_path: Path):
         all_configs[0].get_member_requests_url()
         == "https://www.facebook.com/groups/goethebd/member-requests"
     )
+
+
+def test_format_runtime():
+    assert format_runtime(0) == "00:00:00"
+    assert format_runtime(63) == "00:01:03"
+    assert format_runtime(3665) == "01:01:05"
+
+
+def test_parse_relative_timestamp_a_few_seconds_ago():
+    age = parse_relative_timestamp_age("a few seconds ago")
+    assert age is not None
+    assert 0 <= age <= 60
+
+    about_min_age = parse_relative_timestamp_age("about a minute ago")
+    assert about_min_age == 60
 
 
 def test_normalize_member_request():
@@ -67,6 +87,34 @@ def test_normalize_member_request():
     assert normalized["age_seconds"] == 45
 
 
+def test_first_request_a_few_seconds_ago_beep():
+    mock_browser = MagicMock()
+    scanner = GoetheGroupScanner(browser=mock_browser)
+
+    mock_raw_data = {
+        "group_name": "Goethe Group Bangladesh",
+        "group_url": "https://www.facebook.com/groups/goethebd/member-requests",
+        "author": "Siam Ahmed",
+        "content_text": "Requested a few seconds ago",
+        "content_url": "https://www.facebook.com/user/siam_123",
+        "timestamp_info": {
+            "raw": "a few seconds ago",
+            "age_seconds": 10,
+            "confidence": "HIGH",
+            "freshness": "VERY_RECENT",
+            "source": "dom_timestamp",
+        },
+    }
+
+    with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
+        FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_raw_data
+    ), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
+    ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
+        scanner.monitor_member_requests()
+        mock_beep.assert_called_once()
+
+
 def test_first_request_7_minutes_old_no_beep():
     mock_browser = MagicMock()
     scanner = GoetheGroupScanner(browser=mock_browser)
@@ -88,6 +136,8 @@ def test_first_request_7_minutes_old_no_beep():
 
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_raw_data
+    ), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
     ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         scanner.monitor_member_requests()
         mock_beep.assert_not_called()
@@ -114,6 +164,8 @@ def test_first_request_30_seconds_old_and_new_beep():
 
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_raw_data
+    ), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
     ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         scanner.monitor_member_requests()
         mock_beep.assert_called()
@@ -140,6 +192,8 @@ def test_first_request_59_seconds_old_and_new_beep():
 
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_raw_data
+    ), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
     ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         scanner.monitor_member_requests()
         mock_beep.assert_called()
@@ -166,6 +220,8 @@ def test_first_request_61_seconds_old_no_beep():
 
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_raw_data
+    ), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
     ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         scanner.monitor_member_requests()
         mock_beep.assert_not_called()
@@ -205,7 +261,9 @@ def test_same_request_appears_after_30_seconds_no_second_beep():
         },
     }
 
-    with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
+    with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
+    ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         with patch.object(
             FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=raw_req_1
         ):
@@ -253,7 +311,9 @@ def test_new_request_appears_after_polling_interval_beep():
         },
     }
 
-    with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
+    with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
+    ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         with patch.object(
             FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=old_req
         ):
@@ -267,47 +327,57 @@ def test_new_request_appears_after_polling_interval_beep():
             assert mock_beep.call_count == 1
 
 
-def test_first_request_element_stale_retry():
+def test_invalid_ui_element_ignored_by_pom():
     driver = MagicMock()
     page = FacebookGroupMemberRequestsPage(driver)
 
-    mock_elem_1 = MagicMock()
-    mock_elem_2 = MagicMock()
+    help_center_card = {
+        "author": "Help Center",
+        "content_text": "Help Center",
+        "timestamp_info": {"raw": "now", "age_seconds": 0},
+    }
+    real_card = {
+        "author": "Siam Ahmed",
+        "content_text": "Answers to questions",
+        "timestamp_info": {"raw": "10s ago", "age_seconds": 10},
+    }
 
-    with patch.object(page, "wait_for_first_member_request", return_value=True), patch.object(
-        driver, "find_elements", side_effect=[[mock_elem_1], [mock_elem_2]]
+    assert page.is_valid_member_request(help_center_card) is False
+    assert page.is_valid_member_request(real_card) is True
+
+
+def test_facebook_technical_error_page_reloads_immediately():
+    mock_browser = MagicMock()
+    scanner = GoetheGroupScanner(browser=mock_browser)
+
+    mock_raw_data = {
+        "author": "Recovered User",
+        "content_text": "Request after recovery",
+        "timestamp_info": {"raw": "10s ago", "age_seconds": 10},
+    }
+
+    with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
+        FacebookGroupMemberRequestsPage,
+        "is_technical_error_page",
+        side_effect=[True, False],
     ), patch.object(
-        page,
-        "extract_member_request_data",
-        side_effect=[
-            StaleElementReferenceException("Element stale"),
-            {
-                "author": "Retry User",
-                "content_text": "Success after retry",
-                "timestamp_info": {"raw": "10s ago", "age_seconds": 10},
-            },
-        ],
-    ):
-        result = page.get_first_member_request()
-        assert result is not None
-        assert result["author"] == "Retry User"
+        FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_raw_data
+    ), patch("time.sleep") as mock_sleep, patch("goethe_groups.goethe_scanner.beep"):
+        result = scanner.monitor_member_requests()
+        assert len(result) == 1
+        assert result[0]["author"] == "Recovered User"
+        mock_sleep.assert_called_with(3)
 
 
-def test_repeated_stale_element_fails_safely():
-    driver = MagicMock()
-    page = FacebookGroupMemberRequestsPage(driver)
+def test_internet_disconnection_and_recovery():
+    scanner = GoetheGroupScanner()
 
-    mock_elem = MagicMock()
-
-    with patch.object(page, "wait_for_first_member_request", return_value=True), patch.object(
-        driver, "find_elements", return_value=[mock_elem]
-    ), patch.object(
-        page,
-        "extract_member_request_data",
-        side_effect=StaleElementReferenceException("Persistent stale"),
-    ):
-        result = page.get_first_member_request(max_retries=3)
-        assert result is None
+    with patch("goethe_groups.goethe_scanner.is_internet_connected", side_effect=[False, True]), patch(
+        "goethe_groups.goethe_scanner.beep"
+    ) as mock_beep, patch("time.sleep"):
+        scanner.check_internet_status()
+        mock_beep.assert_called_once()
+        assert scanner.internet_was_down is False
 
 
 def test_empty_request_page_no_crash():
@@ -316,7 +386,7 @@ def test_empty_request_page_no_crash():
 
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=None
-    ):
+    ), patch.object(FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False):
         res = scanner.monitor_member_requests()
         assert res == []
 
@@ -334,6 +404,8 @@ def test_scanner_does_not_iterate_hundreds():
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_data
     ) as mock_get_first, patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
+    ), patch.object(
         FacebookGroupMemberRequestsPage, "get_visible_member_requests"
     ) as mock_get_visible:
         scanner.monitor_member_requests()
@@ -355,6 +427,8 @@ def test_normal_scan_completes_fast():
     start_time = time.time()
     with patch.object(FacebookGroupMemberRequestsPage, "navigate_to_member_requests"), patch.object(
         FacebookGroupMemberRequestsPage, "get_first_member_request", return_value=mock_data
+    ), patch.object(
+        FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
     ), patch("goethe_groups.goethe_scanner.beep"):
         scanner.monitor_member_requests()
     duration = time.time() - start_time

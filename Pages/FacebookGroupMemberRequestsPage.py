@@ -28,9 +28,10 @@ class FacebookGroupMemberRequestsPage(BasePage):
 
     MEMBER_REQUEST_CARDS = (
         By.XPATH,
-        "//div[@role='article'] | "
-        "//div[contains(@aria-label, 'Member request')] | "
-        "//div[contains(@class, 'x1n2onr6') and .//a[contains(@href, '/user/') or contains(@href, 'facebook.com/')]]",
+        "//div[@role='main']//div[@role='article'] | "
+        "//div[@role='main']//div[contains(@aria-label, 'Member request')] | "
+        "//div[@role='main']//div[.//a[contains(@href, '/user/') or contains(@href, 'profile.php')] and "
+        "(.*[contains(text(), 'Requested')] or .//div[contains(@aria-label, 'Approve') or contains(@aria-label, 'Decline') or contains(., 'Approve') or contains(., 'Decline')])]",
     )
 
     def __init__(self, driver):
@@ -45,6 +46,48 @@ class FacebookGroupMemberRequestsPage(BasePage):
         """Reload the member requests page."""
         self.driver.refresh()
         wait_for_page_ready(self.driver, timeout=WAIT_SECONDS)
+
+    def is_technical_error_page(self) -> bool:
+        """Check if Facebook is currently displaying a temporary technical error or page unavailable screen."""
+        try:
+            title = self.driver.title or ""
+            if "error" in title.lower():
+                return True
+            error_indicators = (
+                "//span[contains(text(), \"This page isn't available right now\")] | "
+                "//span[contains(text(), \"This content isn't available right now\")] | "
+                "//div[contains(text(), \"Something went wrong\")] | "
+                "//h2[contains(text(), \"This page isn't available\")]"
+            )
+            elements = self.driver.find_elements(By.XPATH, error_indicators)
+            return len(elements) > 0
+        except Exception:
+            return False
+
+    def is_valid_member_request(self, data: dict) -> bool:
+        """Verify extracted card data corresponds to a real member request, not UI noise."""
+        if not data:
+            return False
+
+        author = (data.get("author") or "").strip().lower()
+        invalid_names = {
+            "help center",
+            "number of unread notifications",
+            "notifications",
+            "admin center",
+            "help & support",
+            "settings & privacy",
+            "facebook",
+            "unread notifications",
+        }
+        if author in invalid_names:
+            return False
+
+        text = (data.get("content_text") or "").strip().lower()
+        if any(invalid in text for invalid in ("help center", "number of unread notifications")):
+            return False
+
+        return True
 
     def wait_for_first_member_request(self, timeout: int = 10) -> bool:
         """Wait until the first member request card element is present."""
@@ -73,12 +116,13 @@ class FacebookGroupMemberRequestsPage(BasePage):
                 if not elements:
                     return None
 
-                first_card = elements[0]
-                data = self.extract_member_request_data(
-                    first_card, group_name=group_name, group_url=group_url
-                )
-                if data:
-                    return data
+                for card in elements:
+                    data = self.extract_member_request_data(
+                        card, group_name=group_name, group_url=group_url
+                    )
+                    if data and self.is_valid_member_request(data):
+                        return data
+                return None
             except StaleElementReferenceException:
                 print(f"[POM] Stale element on attempt {attempt + 1}/{max_retries}, retrying...")
                 time.sleep(0.5)

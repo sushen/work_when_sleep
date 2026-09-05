@@ -2213,3 +2213,362 @@ Text:
     Fast scan test
 
 ==================================================
+==================================================
+OPPORTUNITY FOUND
+==================================================
+
+Source:
+    facebook
+
+Detected:
+    2026-09-05 08:31:28
+
+Group:
+    Goethe Group Bangladesh
+
+Group URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Content:
+    MEMBER_REQUEST
+
+Author:
+    Single Target
+
+Title:
+    Member Request: Single Target (Goethe Group Bangladesh)
+
+URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Opportunity Key:
+    fb:member_req:https://www.facebook.com/groups/goethebd/member-requests:Single Target
+
+Signals:
+    UNKNOWN
+
+Score:
+    0
+
+Quality:
+    WEAK
+
+Creation Timestamp:
+    5m ago
+
+Timestamp Confidence:
+    NONE
+
+Age:
+    5 minutes
+
+Detection Latency:
+    UNKNOWN
+
+Freshness:
+    UNKNOWN
+
+Text:
+    Only inspects first request
+
+==================================================
+
+==================================================
+OPPORTUNITY FOUND
+==================================================
+
+Source:
+    facebook
+
+Detected:
+    2026-09-05 08:31:28
+
+Group:
+    Goethe Group Bangladesh
+
+Group URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Content:
+    MEMBER_REQUEST
+
+Author:
+    Fast User
+
+Title:
+    Member Request: Fast User (Goethe Group Bangladesh)
+
+URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Opportunity Key:
+    fb:member_req:https://www.facebook.com/groups/goethebd/member-requests:Fast User
+
+Signals:
+    UNKNOWN
+
+Score:
+    0
+
+Quality:
+    WEAK
+
+Creation Timestamp:
+    30s ago
+
+Timestamp Confidence:
+    NONE
+
+Age:
+    30 seconds
+
+Detection Latency:
+    UNKNOWN
+
+Freshness:
+    UNKNOWN
+
+Text:
+    Fast scan test
+
+==================================================
+
+==================================================
+OPPORTUNITY FOUND
+==================================================
+
+Source:
+    facebook
+
+Detected:
+    2026-09-05 08:32:26
+
+Group:
+    Goethe Group Bangladesh
+
+Group URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Content:
+    MEMBER_REQUEST
+
+Author:
+    Single Target
+
+Title:
+    Member Request: Single Target (Goethe Group Bangladesh)
+
+URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Opportunity Key:
+    fb:member_req:https://www.facebook.com/groups/goethebd/member-requests:Single Target
+
+Signals:
+    UNKNOWN
+
+Score:
+    0
+
+Quality:
+    WEAK
+
+Creation Timestamp:
+    5m ago
+
+Timestamp Confidence:
+    NONE
+
+Age:
+    5 minutes
+
+Detection Latency:
+    UNKNOWN
+
+Freshness:
+    UNKNOWN
+
+Text:
+    Only inspects first request
+
+==================================================
+
+==================================================
+OPPORTUNITY FOUND
+==================================================
+
+Source:
+    facebook
+
+Detected:
+    2026-09-05 08:32:26
+
+Group:
+    Goethe Group Bangladesh
+
+Group URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Content:
+    MEMBER_REQUEST
+
+Author:
+    Fast User
+
+Title:
+    Member Request: Fast User (Goethe Group Bangladesh)
+
+URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Opportunity Key:
+    fb:member_req:https://www.facebook.com/groups/goethebd/member-requests:Fast User
+
+Signals:
+    UNKNOWN
+
+Score:
+    0
+
+Quality:
+    WEAK
+
+Creation Timestamp:
+    30s ago
+
+Timestamp Confidence:
+    NONE
+
+Age:
+    30 seconds
+
+Detection Latency:
+    UNKNOWN
+
+Freshness:
+    UNKNOWN
+
+Text:
+    Fast scan test
+
+==================================================
+
+==================================================
+OPPORTUNITY FOUND
+==================================================
+
+Source:
+    facebook
+
+Detected:
+    2026-09-05 08:32:55
+
+Group:
+    Goethe Group Bangladesh
+
+Group URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Content:
+    MEMBER_REQUEST
+
+Author:
+    Single Target
+
+Title:
+    Member Request: Single Target (Goethe Group Bangladesh)
+
+URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Opportunity Key:
+    fb:member_req:https://www.facebook.com/groups/goethebd/member-requests:Single Target
+
+Signals:
+    UNKNOWN
+
+Score:
+    0
+
+Quality:
+    WEAK
+
+Creation Timestamp:
+    5m ago
+
+Timestamp Confidence:
+    NONE
+
+Age:
+    5 minutes
+
+Detection Latency:
+    UNKNOWN
+
+Freshness:
+    UNKNOWN
+
+Text:
+    Only inspects first request
+
+==================================================
+
+==================================================
+OPPORTUNITY FOUND
+==================================================
+
+Source:
+    facebook
+
+Detected:
+    2026-09-05 08:32:55
+
+Group:
+    Goethe Group Bangladesh
+
+Group URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Content:
+    MEMBER_REQUEST
+
+Author:
+    Fast User
+
+Title:
+    Member Request: Fast User (Goethe Group Bangladesh)
+
+URL:
+    https://www.facebook.com/groups/goethebd/member-requests
+
+Opportunity Key:
+    fb:member_req:https://www.facebook.com/groups/goethebd/member-requests:Fast User
+
+Signals:
+    UNKNOWN
+
+Score:
+    0
+
+Quality:
+    WEAK
+
+Creation Timestamp:
+    30s ago
+
+Timestamp Confidence:
+    NONE
+
+Age:
+    30 seconds
+
+Detection Latency:
+    UNKNOWN
+
+Freshness:
+    UNKNOWN
+
+Text:
+    Fast scan test
+
+==================================================
