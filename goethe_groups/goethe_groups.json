@@ -1,7 +1,7 @@
 [
   {
     "name": "Goethe German A1 Group",
-    "url": "https://www.facebook.com/groups/goethe.a1.german",
+    "url": "https://www.facebook.com/groups/goethebd/member-requests",
     "enabled": true,
     "search_interests": [
       "Goethe A1",
@@ -10,17 +10,6 @@
       "visa",
       "Germany",
       "Ausbildung"
-    ]
-  },
-  {
-    "name": "Goethe German B1 B2 Group",
-    "url": "https://www.facebook.com/groups/goethe.b1.b2.german",
-    "enabled": true,
-    "search_interests": [
-      "Goethe B1",
-      "Goethe B2",
-      "exam date",
-      "certificate"
     ]
   }
 ]
