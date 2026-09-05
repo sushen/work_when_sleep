@@ -157,8 +157,17 @@ def parse_relative_timestamp_age(timestamp_raw):
         return None
 
     timestamp = normalize_space(timestamp_raw).lower()
+
+    # Strip prefixes like "about", "approximately", "around"
+    for prefix in ("about ", "approximately ", "around "):
+        if timestamp.startswith(prefix):
+            timestamp = timestamp[len(prefix):].strip()
+
     if timestamp in {"now", "just now"}:
         return 0
+
+    if timestamp in {"a few seconds ago", "few seconds ago", "a few seconds", "few seconds"}:
+        return 10
 
     if timestamp == "yesterday":
         return int(24 * 60 * 60)

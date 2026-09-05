@@ -1,8 +1,9 @@
-"""Continuous monitoring scanner for Goethe Group Member Requests page."""
+"""Continuous real-time monitor for Goethe Group Member Requests page."""
 
 from __future__ import annotations
 
 import time
+import urllib.request
 
 from selenium.common.exceptions import (
     StaleElementReferenceException,
@@ -19,28 +20,40 @@ from search_interested.browser_session import (
     restart_driver,
 )
 from search_interested.notifier import beep
-from search_interested.opportunity_engine import analyze_opportunity
-from search_interested.results import (
-    alert_opportunity,
-    build_opportunity,
-    build_opportunity_key,
-    display_opportunity,
-    load_seen_opportunity_keys,
-    save_opportunity,
-)
 from search_interested.settings import (
     GOETHE_GROUP_POLL_INTERVAL_SECONDS,
     GOETHE_IMMEDIATE_ALERT_SECONDS,
     GOETHE_MEMBER_REQUESTS_URL,
 )
-from search_interested.text_utils import format_age, print_running_time, short_error
+from search_interested.text_utils import format_age, short_error
+
+
+def format_runtime(seconds: float) -> str:
+    """Format seconds into HH:MM:SS string representation."""
+    total_secs = max(0, int(seconds))
+    hours, remainder = divmod(total_secs, 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
+def is_internet_connected(timeout: float = 3.0) -> bool:
+    """Check whether internet connectivity is available."""
+    try:
+        urllib.request.urlopen("https://1.1.1.1", timeout=timeout)
+        return True
+    except Exception:
+        try:
+            urllib.request.urlopen("https://www.google.com", timeout=timeout)
+            return True
+        except Exception:
+            return False
 
 
 def normalize_member_request(
     raw_request: dict,
     detected_at: float | None = None,
 ) -> dict:
-    """Normalize raw member request data into standard item dictionary."""
+    """Normalize raw member request data into standard dictionary."""
     if detected_at is None:
         detected_at = time.time()
 
@@ -61,11 +74,13 @@ def normalize_member_request(
     }
 
     if content_url and content_url != group_url:
-        opportunity_key = f"url:{content_url}"
+        request_id = f"url:{content_url}"
     else:
-        opportunity_key = f"fb:member_req:{group_url}:{author}"
+        request_id = f"fb:member_req:{group_url}:{author}"
 
     return {
+        "request_id": request_id,
+        "request_key": request_id,
         "source": "facebook",
         "source_type": "goethe_member_request",
         "community_name": group_name,
@@ -78,10 +93,8 @@ def normalize_member_request(
         "text": text,
         "content_url": content_url,
         "timestamp_info": timestamp_info,
-        "timestamp_confidence": timestamp_info.get("confidence", "NONE"),
         "age_seconds": timestamp_info.get("age_seconds"),
         "timestamp_raw": timestamp_info.get("raw"),
-        "opportunity_key": opportunity_key,
         "discovered_at": detected_at,
     }
 
@@ -92,7 +105,7 @@ class GoetheGroupScanner:
     def __init__(
         self,
         browser=None,
-        poll_interval: int = GOETHE_GROUP_POLL_INTERVAL_SECONDS,
+        poll_interval: int = 60,
         immediate_alert_seconds: int = GOETHE_IMMEDIATE_ALERT_SECONDS,
         target_url: str = GOETHE_MEMBER_REQUESTS_URL,
         config_file=None,
@@ -102,64 +115,11 @@ class GoetheGroupScanner:
         self.immediate_alert_seconds = immediate_alert_seconds
         self.target_url = target_url
         self.config_file = config_file
-        self.seen_keys = load_seen_opportunity_keys()
         self.alerted_keys: set[str] = set()
-
-    def check_immediate_freshness_alert(self, normalized_item: dict) -> bool:
-        """Trigger immediate BEEP if request age <= GOETHE_IMMEDIATE_ALERT_SECONDS (60s)."""
-        opportunity_key = normalized_item.get("opportunity_key")
-        if not opportunity_key or opportunity_key in self.alerted_keys:
-            return False
-
-        age_seconds = normalized_item.get("age_seconds")
-        if age_seconds is not None and 0 <= age_seconds <= self.immediate_alert_seconds:
-            self.alerted_keys.add(opportunity_key)
-            print("[GoetheGroups] NEW REQUEST detected.")
-            print(f"[GoetheGroups] Request age <= {self.immediate_alert_seconds} seconds.")
-            print("[GoetheGroups] BEEP")
-            beep()
-            print("[GoetheGroups] Request marked as alerted.")
-            return True
-        return False
-
-    def process_item(self, normalized_item: dict) -> dict | None:
-        """Evaluate member request item, check freshness alert, save and dispatch."""
-        opportunity_key = normalized_item["opportunity_key"]
-
-        self.check_immediate_freshness_alert(normalized_item)
-
-        if opportunity_key in self.seen_keys:
-            return None
-
-        self.seen_keys.add(opportunity_key)
-
-        timestamp_info = normalized_item.get("timestamp_info", {})
-        opportunity_analysis = analyze_opportunity(normalized_item["content_text"])
-
-        opportunity = build_opportunity(
-            group_name=normalized_item["group_name"],
-            group_url=normalized_item["group_url"],
-            content_type=normalized_item["content_type"],
-            author=normalized_item["author"],
-            content_text=normalized_item["content_text"],
-            content_url=normalized_item["content_url"],
-            timestamp_info=timestamp_info,
-            opportunity_analysis=opportunity_analysis,
-            opportunity_key=opportunity_key,
-            source="facebook",
-            subreddit="",
-            title=f"Member Request: {normalized_item['author']} ({normalized_item['group_name']})",
-            post_id=None,
-        )
-        opportunity["source_type"] = "goethe_member_request"
-
-        save_opportunity(opportunity)
-        alert_opportunity(opportunity)
-        display_opportunity(opportunity)
-        return opportunity
+        self.internet_was_down: bool = False
 
     def monitor_member_requests(self, page_url: str | None = None) -> list[dict]:
-        """Fetch and process ONLY the newest member request from the target page."""
+        """Fetch and check ONLY the newest member request card from target page."""
         target = page_url or self.target_url
         print("[GoetheGroups] Reloading Member Requests page...")
 
@@ -168,11 +128,21 @@ class GoetheGroupScanner:
 
         page = FacebookGroupMemberRequestsPage(self.browser)
 
-        try:
-            page.navigate_to_member_requests(target)
-        except Exception as error:
-            print(f"[GoetheGroups] Error navigating to {target}: {short_error(error)}")
-            return []
+        max_error_retries = 3
+        for attempt in range(max_error_retries):
+            try:
+                page.navigate_to_member_requests(target)
+                if page.is_technical_error_page():
+                    print("[GoetheGroups] Facebook temporary technical error detected.")
+                    print("[GoetheGroups] Reloading immediately...")
+                    time.sleep(3)
+                    continue
+                if attempt > 0:
+                    print("[GoetheGroups] Member Requests page recovered.")
+                break
+            except Exception as error:
+                print(f"[GoetheGroups] Error navigating to {target}: {short_error(error)}")
+                return []
 
         print("[GoetheGroups] Waiting for newest member request...")
         raw_data = page.get_first_member_request(group_url=target)
@@ -186,27 +156,49 @@ class GoetheGroupScanner:
         raw_age = normalized.get("timestamp_raw") or ""
 
         if age_seconds is not None:
-            age_display = format_age(age_seconds)
+            age_display = raw_age or format_age(age_seconds)
+            age_sec_str = f"\nage_seconds={age_seconds}"
         else:
             age_display = raw_age or "unknown age"
+            age_sec_str = ""
 
-        print(f"[GoetheGroups] Newest request:\nmember={author}\nage={age_display}")
+        print(f"[GoetheGroups] Newest request:\nmember={author}\nage={age_display}{age_sec_str}")
 
-        opportunity_key = normalized.get("opportunity_key")
-        is_already_alerted = opportunity_key in self.alerted_keys
+        request_id = normalized.get("request_id")
+        is_already_alerted = request_id in self.alerted_keys
 
         if is_already_alerted:
             print("[GoetheGroups] Request already alerted. No alert.")
         elif age_seconds is None or age_seconds > self.immediate_alert_seconds or age_seconds < 0:
-            print(f"[GoetheGroups] Request is older than {self.immediate_alert_seconds} seconds. No alert.")
+            print("[GoetheGroups] Request older than 60 seconds.")
+            print("[GoetheGroups] No alert.")
         else:
-            self.check_immediate_freshness_alert(normalized)
+            print("[GoetheGroups] NEW MEMBER REQUEST DETECTED")
+            print(f"[GoetheGroups] Request age <= {self.immediate_alert_seconds} seconds")
+            print("[GoetheGroups] BEEP")
+            beep()
+            self.alerted_keys.add(request_id)
+            print("[GoetheGroups] Request marked as alerted.")
 
-        opp = self.process_item(normalized)
-        return [opp] if opp else []
+        return [normalized]
+
+    def check_internet_status(self) -> None:
+        """Check internet connection, handle outage alert and recovery loop."""
+        if not is_internet_connected():
+            if not self.internet_was_down:
+                print("\n[INTERNET] CONNECTION LOST")
+                beep()
+                self.internet_was_down = True
+
+            while not is_internet_connected():
+                time.sleep(5)
+
+            print("\n[INTERNET] CONNECTION RESTORED")
+            print("[GoetheGroups] Resuming Member Requests monitoring...")
+            self.internet_was_down = False
 
     def run_continuous(self, start_time: float | None = None) -> None:
-        """Continuous polling loop over Goethe Group member requests page every 30s."""
+        """Continuous scheduled monitoring loop over Goethe Group Member Requests page."""
         if start_time is None:
             start_time = time.time()
 
@@ -223,8 +215,16 @@ class GoetheGroupScanner:
 
         print(f"[GoetheGroups] Starting continuous Member Requests monitor:\n{target_url}")
 
+        check_counter = 0
+        next_check = time.time()
+
         while True:
+            self.check_internet_status()
+
+            check_counter += 1
             cycle_started = time.time()
+            print(f"\n[GoetheGroups] CHECK #{check_counter}")
+
             try:
                 self.monitor_member_requests(target_url)
             except Exception as error:
@@ -236,9 +236,17 @@ class GoetheGroupScanner:
                         print(f"[GoetheGroups] Restart browser error: {short_error(restart_err)}")
 
             cycle_duration = time.time() - cycle_started
-            print(f"[GoetheGroups] Scan completed in {cycle_duration:.1f}s")
-            print(f"[GoetheGroups] Waiting {self.poll_interval}s...")
-            time.sleep(self.poll_interval)
+            total_runtime = time.time() - start_time
+            print(f"[GoetheGroups] Check completed in {cycle_duration:.1f}s")
+            print(f"[GoetheGroups] Total runtime: {format_runtime(total_runtime)}")
+
+            next_check += self.poll_interval
+            sleep_time = next_check - time.time()
+            if sleep_time > 0:
+                print("[GoetheGroups] Waiting until next 1-minute check...")
+                time.sleep(sleep_time)
+            else:
+                next_check = time.time()
 
 
 def main():
