@@ -365,6 +365,36 @@ def extract_timestamp(content_element, content_type):
         except WebDriverException as error:
             print(f"[ERROR] Could not extract timestamp: {short_error(error)}")
 
+    if content_type == "MEMBER_REQUEST":
+        try:
+            member_request_elements = content_element.find_elements(
+                By.XPATH,
+                ".//*[self::abbr or self::span or self::div]",
+            )
+            for element in member_request_elements:
+                candidates = []
+                for line in normalize_multiline(element.text).splitlines():
+                    candidate = normalize_space(line)
+                    if candidate and candidate not in candidates:
+                        candidates.append(candidate)
+
+                timestamp_info = choose_timestamp_from_candidates(
+                    candidates,
+                    source="member_request_timestamp",
+                )
+                if timestamp_info["age_seconds"] is not None:
+                    return timestamp_info
+                for candidate in timestamp_info["candidates"]:
+                    if (
+                        first_unknown_candidate is None
+                        and is_plausible_timestamp_candidate(candidate)
+                    ):
+                        first_unknown_candidate = candidate
+        except StaleElementReferenceException:
+            raise
+        except WebDriverException as error:
+            print(f"[ERROR] Could not extract member request timestamp: {short_error(error)}")
+
     return build_timestamp_info(
         raw=first_unknown_candidate,
         age_seconds=None,
