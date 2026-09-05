@@ -352,6 +352,13 @@ def test_invalid_ui_element_ignored_by_pom():
     assert page.is_valid_member_request(real_card) is True
 
 
+def test_member_request_card_xpath_is_valid():
+    selector = FacebookGroupMemberRequestsPage.MEMBER_REQUEST_CARDS[1]
+
+    assert ".\\*" not in selector
+    assert ".//*" in selector
+
+
 def test_facebook_technical_error_page_reloads_immediately():
     mock_browser = MagicMock()
     scanner = GoetheGroupScanner(browser=mock_browser)
