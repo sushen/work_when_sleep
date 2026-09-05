@@ -115,6 +115,6 @@ REDDIT_USER_AGENT = "SearchInterested/1.0 (Opportunity Discovery Scanner)"
 
 # Goethe Groups configuration
 GOETHE_GROUPS_CONFIG_FILE = PROJECT_DIRECTORY / "goethe_groups" / "goethe_groups.json"
+GOETHE_MEMBER_REQUESTS_URL = "https://www.facebook.com/groups/goethebd/member-requests"
 GOETHE_GROUP_POLL_INTERVAL_SECONDS = 30
-MAX_SCROLLS_PER_GOETHE_SEARCH = 5
-MAX_RESULTS_PER_GOETHE_SEARCH = 20
+GOETHE_IMMEDIATE_ALERT_SECONDS = 60

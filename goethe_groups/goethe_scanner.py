@@ -1,4 +1,4 @@
-"""Continuous monitoring scanner for Goethe Facebook groups search interests."""
+"""Continuous monitoring scanner for Goethe Group Member Requests page."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from selenium.common.exceptions import (
     WebDriverException,
 )
 
-from Pages.FacebookGroupSearchPage import FacebookGroupSearchPage
+from Pages.FacebookGroupMemberRequestsPage import FacebookGroupMemberRequestsPage
 from goethe_groups.goethe_config import GoetheGroupConfig, get_enabled_goethe_groups
 from search_interested.browser_session import (
     create_driver,
@@ -21,7 +21,7 @@ from search_interested.browser_session import (
     wait_for_page_ready,
 )
 from search_interested.notifier import beep
-from search_interested.opportunity_engine import analyze_opportunity, is_fresh_opportunity_timestamp
+from search_interested.opportunity_engine import analyze_opportunity
 from search_interested.results import (
     alert_opportunity,
     build_opportunity,
@@ -32,53 +32,51 @@ from search_interested.results import (
 )
 from search_interested.settings import (
     GOETHE_GROUP_POLL_INTERVAL_SECONDS,
-    MAX_SCROLLS_PER_GOETHE_SEARCH,
+    GOETHE_IMMEDIATE_ALERT_SECONDS,
+    GOETHE_MEMBER_REQUESTS_URL,
 )
 from search_interested.text_utils import print_running_time, short_error
 
 
-def normalize_goethe_post(raw_post: dict, query: str = "", detected_at: float | None = None) -> dict:
-    """Normalize raw Goethe group search result into standard item dictionary."""
+def normalize_member_request(
+    raw_request: dict,
+    detected_at: float | None = None,
+) -> dict:
+    """Normalize raw member request data into standard item dictionary."""
     if detected_at is None:
         detected_at = time.time()
 
-    group_url = raw_post.get("group_url", "")
-    content_url = raw_post.get("content_url") or raw_post.get("post_url") or group_url
-    content_type = raw_post.get("content_type", "POST")
-    text = raw_post.get("content_text") or raw_post.get("text", "")
-    author = raw_post.get("author") or raw_post.get("author_name", "UNKNOWN")
-    timestamp_info = raw_post.get("timestamp_info") or {"raw": "", "age_seconds": None, "confidence": "NONE", "freshness": "UNKNOWN"}
+    group_name = raw_request.get("group_name", "Goethe Group Bangladesh")
+    group_url = raw_request.get("group_url", GOETHE_MEMBER_REQUESTS_URL)
+    author = raw_request.get("author", "UNKNOWN")
+    text = raw_request.get("content_text") or raw_request.get("text", "")
+    content_url = raw_request.get("content_url", group_url)
+    timestamp_info = raw_request.get("timestamp_info") or {
+        "raw": "",
+        "age_seconds": None,
+        "confidence": "NONE",
+        "freshness": "UNKNOWN",
+        "source": "unknown",
+        "warning": None,
+    }
 
     opportunity_key = build_opportunity_key(
         group_url=group_url,
         content_url=content_url,
-        content_type=content_type,
+        content_type="MEMBER_REQUEST",
         content_text=text,
         timestamp_raw=timestamp_info.get("raw"),
     )
 
-    post_id = raw_post.get("post_id")
-    if not post_id and content_url:
-        if "/posts/" in content_url:
-            post_id = content_url.split("/posts/")[1].split("/")[0].split("?")[0]
-        elif "/permalink/" in content_url:
-            post_id = content_url.split("/permalink/")[1].split("/")[0].split("?")[0]
-        elif "story_fbid=" in content_url:
-            post_id = content_url.split("story_fbid=")[1].split("&")[0]
-
     return {
         "source": "facebook",
-        "source_type": "goethe_group",
-        "community_name": raw_post.get("group_name", "Goethe Group"),
-        "group_name": raw_post.get("group_name", "Goethe Group"),
+        "source_type": "goethe_member_request",
+        "community_name": group_name,
+        "group_name": group_name,
         "group_url": group_url,
-        "search_interest": query,
-        "query": query,
-        "post_id": post_id,
-        "post_url": raw_post.get("post_url", content_url),
         "author": author,
         "author_name": author,
-        "content_type": content_type,
+        "content_type": "MEMBER_REQUEST",
         "content_text": text,
         "text": text,
         "content_url": content_url,
@@ -92,24 +90,53 @@ def normalize_goethe_post(raw_post: dict, query: str = "", detected_at: float | 
 
 
 class GoetheGroupScanner:
-    """Monitors configured Goethe Facebook groups by searching keywords periodically."""
+    """Monitors Goethe Group Member Requests page in real-time."""
 
     def __init__(
         self,
         browser=None,
         poll_interval: int = GOETHE_GROUP_POLL_INTERVAL_SECONDS,
-        max_scrolls: int = MAX_SCROLLS_PER_GOETHE_SEARCH,
+        immediate_alert_seconds: int = GOETHE_IMMEDIATE_ALERT_SECONDS,
+        target_url: str = GOETHE_MEMBER_REQUESTS_URL,
         config_file=None,
     ):
         self.browser = browser
         self.poll_interval = poll_interval
-        self.max_scrolls = max_scrolls
+        self.immediate_alert_seconds = immediate_alert_seconds
+        self.target_url = target_url
         self.config_file = config_file
         self.seen_keys = load_seen_opportunity_keys()
+        self.alerted_keys: set[str] = set()
+
+    def check_immediate_freshness_alert(self, normalized_item: dict) -> bool:
+        """Trigger immediate BEEP if request age <= GOETHE_IMMEDIATE_ALERT_SECONDS (60s)."""
+        opportunity_key = normalized_item.get("opportunity_key")
+        if not opportunity_key or opportunity_key in self.alerted_keys:
+            return False
+
+        age_seconds = normalized_item.get("age_seconds")
+        if age_seconds is not None and 0 <= age_seconds <= self.immediate_alert_seconds:
+            self.alerted_keys.add(opportunity_key)
+            print("=" * 50)
+            print("[GOETHE NEW MEMBER REQUEST - FRESH ALERT]")
+            print("=" * 50)
+            print(f"Group: {normalized_item.get('group_name')}")
+            print(f"Author: {normalized_item.get('author')}")
+            print(f"Age: {int(age_seconds)} seconds")
+            print(f"URL: {normalized_item.get('content_url')}")
+            print(f"Details: {normalized_item.get('content_text')}")
+            print("=" * 50)
+            print("[ALERT] NEW MEMBER REQUEST <= 60s -> BEEP")
+            beep()
+            return True
+        return False
 
     def process_item(self, normalized_item: dict) -> dict | None:
-        """Evaluate normalized Goethe item, save and alert if fresh opportunity."""
+        """Evaluate member request item, check freshness alert, save and dispatch."""
         opportunity_key = normalized_item["opportunity_key"]
+
+        # Real-time alert check for requests <= 60 seconds
+        self.check_immediate_freshness_alert(normalized_item)
 
         if opportunity_key in self.seen_keys:
             return None
@@ -117,14 +144,7 @@ class GoetheGroupScanner:
         self.seen_keys.add(opportunity_key)
 
         timestamp_info = normalized_item.get("timestamp_info", {})
-        if not is_fresh_opportunity_timestamp(timestamp_info):
-            return None
-
         opportunity_analysis = analyze_opportunity(normalized_item["content_text"])
-        quality = opportunity_analysis["quality"]
-
-        if quality in {"WEAK", "REJECT"}:
-            return None
 
         opportunity = build_opportunity(
             group_name=normalized_item["group_name"],
@@ -138,96 +158,54 @@ class GoetheGroupScanner:
             opportunity_key=opportunity_key,
             source="facebook",
             subreddit="",
-            title=f"Goethe Group: {normalized_item['group_name']} - {normalized_item['query']}",
-            query=normalized_item.get("query"),
-            post_id=normalized_item.get("post_id"),
+            title=f"Member Request: {normalized_item['author']} ({normalized_item['group_name']})",
+            post_id=None,
         )
-        opportunity["source_type"] = "goethe_group"
-        opportunity["search_interest"] = normalized_item.get("search_interest")
+        opportunity["source_type"] = "goethe_member_request"
 
         save_opportunity(opportunity)
         alert_opportunity(opportunity)
         display_opportunity(opportunity)
         return opportunity
 
-    def search_group_query(
-        self,
-        group: GoetheGroupConfig,
-        query: str,
-    ) -> list[dict]:
-        """Perform search in group for given query and process visible posts."""
-        print(f"[GoetheGroups] Opening group: {group.name}")
-        print(f"[GoetheGroups] Searching: '{query}' ({group.url})")
+    def monitor_member_requests(self, page_url: str | None = None) -> list[dict]:
+        """Fetch and process visible member requests from the target page."""
+        target = page_url or self.target_url
+        print(f"[GoetheGroups] Opening Member Requests page: {target}")
 
         if self.browser is None:
             return []
 
-        search_page = FacebookGroupSearchPage(self.browser)
+        page = FacebookGroupMemberRequestsPage(self.browser)
 
         try:
-            search_page.navigate_to_group_search(group.url, query)
-            search_page.wait_for_results()
+            page.navigate_to_member_requests(target)
         except Exception as error:
-            print(f"[GoetheGroups] Error navigating/loading search for {group.name} / '{query}': {short_error(error)}")
+            print(f"[GoetheGroups] Error navigating to {target}: {short_error(error)}")
             return []
 
         discovered = []
+        elements = page.get_visible_member_requests()
+        print(f"[GoetheGroups] Found {len(elements)} member request elements.")
 
-        # Scroll and parse results
-        for scroll_num in range(1, self.max_scrolls + 1):
-            post_elements = search_page.get_visible_post_elements()
-            for elem in post_elements:
-                try:
-                    raw_data = search_page.extract_post_data(
-                        elem,
-                        query=query,
-                        group_name=group.name,
-                        group_url=group.url,
-                    )
-                    if not raw_data:
-                        continue
-
-                    normalized = normalize_goethe_post(raw_data, query=query)
-                    opp = self.process_item(normalized)
-                    if opp:
-                        discovered.append(opp)
-                except StaleElementReferenceException:
+        for elem in elements:
+            try:
+                raw_data = page.extract_member_request_data(elem, group_url=target)
+                if not raw_data:
                     continue
-                except Exception as error:
-                    print(f"[GoetheGroups] Error extracting post element: {short_error(error)}")
+                normalized = normalize_member_request(raw_data)
+                opp = self.process_item(normalized)
+                if opp:
+                    discovered.append(opp)
+            except StaleElementReferenceException:
+                continue
+            except Exception as error:
+                print(f"[GoetheGroups] Error parsing member request card: {short_error(error)}")
 
-            if scroll_num < self.max_scrolls:
-                search_page.scroll_results(1)
-
-        print(f"[GoetheGroups] Search finished for '{query}'. Opportunities found: {len(discovered)}")
         return discovered
 
-    def scan_all_groups(self) -> list[dict]:
-        """Scan all enabled Goethe groups across all configured search interests."""
-        enabled_groups = get_enabled_goethe_groups(self.config_file)
-        if not enabled_groups:
-            print("[GoetheGroups] No enabled Goethe groups found in configuration.")
-            return []
-
-        all_opportunities = []
-
-        for group in enabled_groups:
-            for interest in group.search_interests:
-                try:
-                    opps = self.search_group_query(group, interest)
-                    all_opportunities.extend(opps)
-                except Exception as error:
-                    print(f"[GoetheGroups] Exception searching {group.name} for '{interest}': {short_error(error)}")
-                    if self.browser and is_dead_browser_session(error):
-                        try:
-                            self.browser = restart_driver(self.browser)
-                        except Exception as restart_err:
-                            print(f"[GoetheGroups] Could not restart browser: {short_error(restart_err)}")
-
-        return all_opportunities
-
     def run_continuous(self, start_time: float | None = None) -> None:
-        """Continuous polling loop for Goethe groups scanning."""
+        """Continuous polling loop over Goethe Group member requests page every 30s."""
         if start_time is None:
             start_time = time.time()
 
@@ -237,19 +215,33 @@ class GoetheGroupScanner:
 
         login_if_needed(self.browser)
 
-        print("[GoetheGroups] Continuous scanner started.")
+        enabled_groups = get_enabled_goethe_groups(self.config_file)
+        if enabled_groups:
+            target_url = enabled_groups[0].get_member_requests_url()
+        else:
+            target_url = self.target_url
+
+        print(f"[GoetheGroups] Continuous scanner monitoring Member Requests: {target_url}")
 
         while True:
             cycle_started = time.time()
-            opps = self.scan_all_groups()
-            cycle_duration = time.time() - cycle_started
+            try:
+                opps = self.monitor_member_requests(target_url)
+                cycle_duration = time.time() - cycle_started
+                print(
+                    f"[GoetheGroups] Pass finished in {cycle_duration:.1f}s. "
+                    f"New member requests processed: {len(opps)}"
+                )
+            except Exception as error:
+                print(f"[GoetheGroups] Error in member request cycle: {short_error(error)}")
+                if self.browser and is_dead_browser_session(error):
+                    try:
+                        self.browser = restart_driver(self.browser)
+                    except Exception as restart_err:
+                        print(f"[GoetheGroups] Restart browser error: {short_error(restart_err)}")
 
-            print(
-                f"[GoetheGroups] Cycle completed in {cycle_duration:.1f}s. "
-                f"New opportunities: {len(opps)}"
-            )
             print_running_time(start_time)
-            print(f"[GoetheGroups] Waiting {self.poll_interval}s before next pass...")
+            print(f"[GoetheGroups] Waiting {self.poll_interval}s before reloading member requests page...")
             time.sleep(self.poll_interval)
 
 
@@ -258,7 +250,7 @@ def main():
     try:
         scanner.run_continuous()
     except KeyboardInterrupt:
-        print("\n[GoetheGroups] Scanner stopped by user.")
+        print("\n[GoetheGroups] Member requests scanner stopped by user.")
 
 
 if __name__ == "__main__":

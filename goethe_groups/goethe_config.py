@@ -1,4 +1,4 @@
-"""Configuration loader and data models for Goethe Facebook groups."""
+"""Configuration loader and data models for Goethe Facebook groups member requests."""
 
 from __future__ import annotations
 
@@ -14,8 +14,16 @@ from search_interested.settings import GOETHE_GROUPS_CONFIG_FILE
 class GoetheGroupConfig:
     name: str
     url: str
+    member_requests_url: str = ""
     enabled: bool = True
-    search_interests: list[str] = field(default_factory=list)
+
+    def get_member_requests_url(self) -> str:
+        if self.member_requests_url:
+            return self.member_requests_url
+        clean_url = self.url.rstrip("/")
+        if clean_url.endswith("/member-requests"):
+            return clean_url
+        return f"{clean_url}/member-requests"
 
 
 def load_goethe_groups_config(config_file: str | Path | None = None) -> list[GoetheGroupConfig]:
@@ -37,23 +45,20 @@ def load_goethe_groups_config(config_file: str | Path | None = None) -> list[Goe
                 continue
             name = str(item.get("name", "")).strip()
             url = str(item.get("url", "")).strip()
+            member_req_url = str(item.get("member_requests_url", "")).strip()
             enabled = bool(item.get("enabled", True))
-            raw_interests = item.get("search_interests", [])
-            interests = [
-                str(kw).strip()
-                for kw in raw_interests
-                if kw and str(kw).strip()
-            ]
 
-            if name and url:
-                configs.append(
-                    GoetheGroupConfig(
-                        name=name,
-                        url=url,
-                        enabled=enabled,
-                        search_interests=interests,
-                    )
+            if name and (url or member_req_url):
+                if not url and member_req_url:
+                    url = member_req_url.replace("/member-requests", "")
+
+                config = GoetheGroupConfig(
+                    name=name,
+                    url=url,
+                    member_requests_url=member_req_url,
+                    enabled=enabled,
                 )
+                configs.append(config)
         return configs
     except Exception as error:
         print(f"[GOETHE_CONFIG] Error loading config from '{path}': {error}")

@@ -1,4 +1,4 @@
-"""Unit and integration tests for Goethe Facebook Groups opportunity scanner."""
+"""Unit and integration tests for Goethe Facebook Group Member Requests scanner."""
 
 from __future__ import annotations
 
@@ -9,48 +9,38 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from goethe_groups.goethe_config import GoetheGroupConfig, get_enabled_goethe_groups, load_goethe_groups_config
-from goethe_groups.goethe_scanner import GoetheGroupScanner, normalize_goethe_post
+from goethe_groups.goethe_scanner import GoetheGroupScanner, normalize_member_request
 
 
-def test_goethe_config_loading(tmp_path: Path):
+def test_goethe_config_loading_member_requests(tmp_path: Path):
     config_file = tmp_path / "test_goethe.json"
     data = [
         {
-            "name": "Goethe Test Group 1",
-            "url": "https://www.facebook.com/groups/test1",
+            "name": "Goethe Group Bangladesh",
+            "url": "https://www.facebook.com/groups/goethebd",
+            "member_requests_url": "https://www.facebook.com/groups/goethebd/member-requests",
             "enabled": True,
-            "search_interests": ["German A1", "exam"],
-        },
-        {
-            "name": "Goethe Test Group 2",
-            "url": "https://www.facebook.com/groups/test2",
-            "enabled": False,
-            "search_interests": ["German B1"],
-        },
+        }
     ]
     config_file.write_text(json.dumps(data), encoding="utf-8")
 
     all_configs = load_goethe_groups_config(config_file)
-    assert len(all_configs) == 2
-    assert all_configs[0].name == "Goethe Test Group 1"
-    assert all_configs[0].search_interests == ["German A1", "exam"]
-
-    enabled_configs = get_enabled_goethe_groups(config_file)
-    assert len(enabled_configs) == 1
-    assert enabled_configs[0].name == "Goethe Test Group 1"
+    assert len(all_configs) == 1
+    assert all_configs[0].name == "Goethe Group Bangladesh"
+    assert all_configs[0].get_member_requests_url() == "https://www.facebook.com/groups/goethebd/member-requests"
 
 
-def test_normalize_goethe_post():
-    raw_post = {
-        "group_name": "Goethe German A1",
-        "group_url": "https://www.facebook.com/groups/goethe.a1",
-        "content_text": "Need help for Goethe A1 exam preparation!",
-        "author": "John Doe",
-        "content_type": "POST",
-        "content_url": "https://www.facebook.com/groups/goethe.a1/posts/123456789/",
+def test_normalize_member_request():
+    raw_req = {
+        "group_name": "Goethe Group Bangladesh",
+        "group_url": "https://www.facebook.com/groups/goethebd/member-requests",
+        "content_text": "Answers: 1. Preparing for Goethe A1. 2. Yes.",
+        "author": "Rahim Khan",
+        "content_type": "MEMBER_REQUEST",
+        "content_url": "https://www.facebook.com/user/100012345",
         "timestamp_info": {
-            "raw": "2 hrs ago",
-            "age_seconds": 7200,
+            "raw": "45 secs ago",
+            "age_seconds": 45,
             "confidence": "HIGH",
             "freshness": "VERY_RECENT",
             "source": "dom_post_url",
@@ -58,93 +48,88 @@ def test_normalize_goethe_post():
         },
     }
 
-    normalized = normalize_goethe_post(raw_post, query="Goethe A1", detected_at=1000.0)
+    normalized = normalize_member_request(raw_req, detected_at=1000.0)
 
     assert normalized["source"] == "facebook"
-    assert normalized["source_type"] == "goethe_group"
-    assert normalized["group_name"] == "Goethe German A1"
-    assert normalized["post_id"] == "123456789"
-    assert normalized["author"] == "John Doe"
-    assert normalized["search_interest"] == "Goethe A1"
-    assert "123456789" in normalized["opportunity_key"] or "https://www.facebook.com/groups/goethe.a1/posts/123456789/" in normalized["opportunity_key"]
+    assert normalized["source_type"] == "goethe_member_request"
+    assert normalized["group_name"] == "Goethe Group Bangladesh"
+    assert normalized["author"] == "Rahim Khan"
+    assert normalized["age_seconds"] == 45
 
 
-def test_deduplication_and_opportunity_pipeline():
+def test_freshness_beep_alert_60_seconds():
     scanner = GoetheGroupScanner(browser=None)
-    scanner.seen_keys.clear()  # Clear seen keys for isolated test execution
 
-    normalized_item = {
+    fresh_item = {
+        "group_name": "Goethe Group Bangladesh",
+        "author": "Rahim Khan",
+        "age_seconds": 30,  # <= 60 seconds
+        "opportunity_key": "fb:member_req:unique_1",
+        "content_url": "https://www.facebook.com/groups/goethebd/member-requests",
+        "content_text": "Fresh member request",
+    }
+
+    with patch("goethe_groups.goethe_scanner.beep") as mock_beep:
+        alerted = scanner.check_immediate_freshness_alert(fresh_item)
+        assert alerted is True
+        mock_beep.assert_called_once()
+
+        # Repeated check must not trigger duplicate alert
+        alerted_again = scanner.check_immediate_freshness_alert(fresh_item)
+        assert alerted_again is False
+
+
+def test_old_member_request_no_immediate_beep():
+    scanner = GoetheGroupScanner(browser=None)
+
+    old_item = {
+        "group_name": "Goethe Group Bangladesh",
+        "author": "Old Request User",
+        "age_seconds": 180,  # > 60 seconds
+        "opportunity_key": "fb:member_req:unique_old",
+        "content_url": "https://www.facebook.com/groups/goethebd/member-requests",
+        "content_text": "Old member request",
+    }
+
+    with patch("goethe_groups.goethe_scanner.beep") as mock_beep:
+        alerted = scanner.check_immediate_freshness_alert(old_item)
+        assert alerted is False
+        mock_beep.assert_not_called()
+
+
+def test_deduplication_and_pipeline():
+    scanner = GoetheGroupScanner(browser=None)
+    scanner.seen_keys.clear()
+
+    item = {
         "source": "facebook",
-        "source_type": "goethe_group",
-        "group_name": "Goethe A1",
-        "group_url": "https://www.facebook.com/groups/goethe.a1",
-        "query": "German A1",
-        "search_interest": "German A1",
-        "post_id": "999",
-        "author": "Alice",
-        "content_type": "POST",
-        "content_text": "Looking to hire a German tutor for Goethe A1 exam prep, paid per hour!",
-        "content_url": "https://www.facebook.com/groups/goethe.a1/posts/999/",
+        "source_type": "goethe_member_request",
+        "group_name": "Goethe Group Bangladesh",
+        "group_url": "https://www.facebook.com/groups/goethebd/member-requests",
+        "author": "Karim",
+        "content_type": "MEMBER_REQUEST",
+        "content_text": "Need help with Goethe A1 exam preparation",
+        "content_url": "https://www.facebook.com/user/999",
         "timestamp_info": {
-            "raw": "10 mins ago",
-            "age_seconds": 600,
+            "raw": "2 mins ago",
+            "age_seconds": 120,
             "confidence": "HIGH",
             "freshness": "VERY_RECENT",
             "source": "dom_post_url",
             "warning": None,
         },
-        "opportunity_key": "fb:post:unique_test_key_999",
+        "opportunity_key": "fb:member_req:test_dedup_999",
     }
 
     with patch("goethe_groups.goethe_scanner.save_opportunity") as mock_save, \
          patch("goethe_groups.goethe_scanner.alert_opportunity") as mock_alert, \
          patch("goethe_groups.goethe_scanner.display_opportunity") as mock_display:
 
-        opp1 = scanner.process_item(normalized_item)
+        opp1 = scanner.process_item(item)
         assert opp1 is not None
-        assert opp1["group_name"] == "Goethe A1"
-        assert opp1["source_type"] == "goethe_group"
+        assert opp1["source_type"] == "goethe_member_request"
         mock_save.assert_called_once()
-        mock_alert.assert_called_once()
 
-        # Second attempt with same key must be deduplicated
-        opp2 = scanner.process_item(normalized_item)
+        # Second attempt should be deduplicated
+        opp2 = scanner.process_item(item)
         assert opp2 is None
-
-
-def test_missing_optional_fields_handling():
-    raw_minimal = {
-        "group_name": "Goethe B1",
-        "group_url": "https://www.facebook.com/groups/goethe.b1",
-        "text": "Anyone know Goethe exam date?",
-    }
-
-    normalized = normalize_goethe_post(raw_minimal, query="exam date")
-    assert normalized["author"] == "UNKNOWN"
-    assert normalized["timestamp_confidence"] == "NONE"
-    assert normalized["post_id"] is None
-
-
-def test_search_failure_isolation():
-    mock_browser = MagicMock()
-    scanner = GoetheGroupScanner(browser=mock_browser)
-
-    group1 = GoetheGroupConfig(
-        name="Group 1",
-        url="https://facebook.com/groups/g1",
-        enabled=True,
-        search_interests=["query1", "query2"],
-    )
-
-    with patch.object(scanner, "search_group_query") as mock_search, \
-         patch("goethe_groups.goethe_scanner.get_enabled_goethe_groups", return_value=[group1]):
-
-        # First query fails with exception, second query succeeds
-        mock_search.side_effect = [
-            RuntimeError("Network error on query1"),
-            [{"opportunity_key": "opp2"}],
-        ]
-
-        results = scanner.scan_all_groups()
-        assert len(results) == 1
-        assert mock_search.call_count == 2
