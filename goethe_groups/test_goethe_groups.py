@@ -359,6 +359,18 @@ def test_member_request_card_xpath_is_valid():
     assert ".//*" in selector
 
 
+def test_page_unavailable_at_the_moment_is_detected():
+    driver = MagicMock()
+    driver.title = ""
+    driver.find_element.return_value.text = (
+        "This page isn't available at the moment\n"
+        "This may be because of a technical error that we're working to fix."
+    )
+    page = FacebookGroupMemberRequestsPage(driver)
+
+    assert page.is_technical_error_page() is True
+
+
 def test_facebook_technical_error_page_reloads_immediately():
     mock_browser = MagicMock()
     scanner = GoetheGroupScanner(browser=mock_browser)
@@ -379,7 +391,7 @@ def test_facebook_technical_error_page_reloads_immediately():
         result = scanner.monitor_member_requests()
         assert len(result) == 1
         assert result[0]["author"] == "Recovered User"
-        mock_sleep.assert_called_with(3)
+        mock_sleep.assert_not_called()
 
 
 def test_internet_disconnection_and_recovery():
