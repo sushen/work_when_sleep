@@ -5,6 +5,11 @@ from __future__ import annotations
 import time
 import urllib.request
 
+# Goethe Member Requests Configuration
+CHECK_INTERVAL_SECONDS = 60
+MEMBER_REQUEST_ALERT_WINDOW_MINUTES = 2
+ALERT_WINDOW_SECONDS = MEMBER_REQUEST_ALERT_WINDOW_MINUTES * 60
+
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -22,7 +27,6 @@ from search_interested.browser_session import (
 from search_interested.notifier import beep
 from search_interested.settings import (
     GOETHE_GROUP_POLL_INTERVAL_SECONDS,
-    GOETHE_IMMEDIATE_ALERT_SECONDS,
     GOETHE_MEMBER_REQUESTS_URL,
 )
 from search_interested.text_utils import format_age, short_error
@@ -106,13 +110,15 @@ class GoetheGroupScanner:
         self,
         browser=None,
         poll_interval: int = 60,
-        immediate_alert_seconds: int = GOETHE_IMMEDIATE_ALERT_SECONDS,
+        immediate_alert_seconds: int | None = None,
         target_url: str = GOETHE_MEMBER_REQUESTS_URL,
         config_file=None,
     ):
         self.browser = browser
         self.poll_interval = poll_interval
-        self.immediate_alert_seconds = immediate_alert_seconds
+        self.immediate_alert_seconds = (
+            immediate_alert_seconds if immediate_alert_seconds is not None else ALERT_WINDOW_SECONDS
+        )
         self.target_url = target_url
         self.config_file = config_file
         self.alerted_keys: set[str] = set()
@@ -163,18 +169,23 @@ class GoetheGroupScanner:
             age_sec_str = ""
 
         print(f"[GoetheGroups] Newest request:\nmember={author}\nage={age_display}{age_sec_str}")
+        alert_window_minutes = MEMBER_REQUEST_ALERT_WINDOW_MINUTES
+        alert_window_seconds = self.immediate_alert_seconds or ALERT_WINDOW_SECONDS
+        print(f"[GoetheGroups] Alert window: {alert_window_minutes} minutes ({alert_window_seconds} seconds)")
 
         request_id = normalized.get("request_id")
         is_already_alerted = request_id in self.alerted_keys
 
         if is_already_alerted:
             print("[GoetheGroups] Request already alerted. No alert.")
-        elif age_seconds is None or age_seconds > self.immediate_alert_seconds or age_seconds < 0:
-            print("[GoetheGroups] Request older than 60 seconds.")
+        elif age_seconds is None or age_seconds > alert_window_seconds or age_seconds < 0:
+            print(f"[GoetheGroups] Request older than {alert_window_seconds} seconds.")
+            print("[GoetheGroups] Request is outside alert window.")
             print("[GoetheGroups] No alert.")
         else:
+            print("[GoetheGroups] Request is within alert window.")
             print("[GoetheGroups] NEW MEMBER REQUEST DETECTED")
-            print(f"[GoetheGroups] Request age <= {self.immediate_alert_seconds} seconds")
+            print(f"[GoetheGroups] Request age <= {alert_window_seconds} seconds")
             print("[GoetheGroups] BEEP")
             beep()
             self.alerted_keys.add(request_id)
@@ -214,6 +225,8 @@ class GoetheGroupScanner:
             target_url = self.target_url
 
         print(f"[GoetheGroups] Starting continuous Member Requests monitor:\n{target_url}")
+        print(f"[GoetheGroups] Member request alert window: {MEMBER_REQUEST_ALERT_WINDOW_MINUTES} minutes")
+        print(f"[GoetheGroups] Alert threshold: {ALERT_WINDOW_SECONDS} seconds")
 
         check_counter = 0
         next_check = time.time()

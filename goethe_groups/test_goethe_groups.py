@@ -21,6 +21,7 @@ from goethe_groups.goethe_scanner import (
     format_runtime,
     normalize_member_request,
 )
+from search_interested.settings import ALERT_WINDOW_SECONDS, MEMBER_REQUEST_ALERT_WINDOW_MINUTES
 from search_interested.timestamps import parse_relative_timestamp_age
 
 
@@ -58,6 +59,11 @@ def test_parse_relative_timestamp_a_few_seconds_ago():
 
     about_min_age = parse_relative_timestamp_age("about a minute ago")
     assert about_min_age == 60
+
+
+def test_member_request_alert_window_default_is_two_minutes():
+    assert MEMBER_REQUEST_ALERT_WINDOW_MINUTES == 2
+    assert ALERT_WINDOW_SECONDS == 120
 
 
 def test_normalize_member_request():
@@ -199,7 +205,7 @@ def test_first_request_59_seconds_old_and_new_beep():
         mock_beep.assert_called()
 
 
-def test_first_request_61_seconds_old_no_beep():
+def test_first_request_61_seconds_old_still_beeps():
     mock_browser = MagicMock()
     scanner = GoetheGroupScanner(browser=mock_browser)
 
@@ -224,7 +230,7 @@ def test_first_request_61_seconds_old_no_beep():
         FacebookGroupMemberRequestsPage, "is_technical_error_page", return_value=False
     ), patch("goethe_groups.goethe_scanner.beep") as mock_beep:
         scanner.monitor_member_requests()
-        mock_beep.assert_not_called()
+        mock_beep.assert_called_once()
 
 
 def test_same_request_appears_after_30_seconds_no_second_beep():
